@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.4
+
+### Patch Changes
+
+- fa842bf: Stop `require-auth-before-revalidate` from reporting an invalidation inside a callback when the auth check runs before the callback is created, such as `await requireSession()` followed by `await Promise.resolve().then(() => updateTag("jobs"))`, or an invalidation inside nested Effect callbacks.
+- ea039f0: Accept `@oxlint/plugins` 1.63.0 or later, instead of 1.95.0, so that a package manager with a minimum release age policy can install an older version. CI runs the tests with `@oxlint/plugins` 1.63.0.
+- d112210: Make `trustAwaitedCalls` in `require-auth-before-revalidate` also trust an awaited Effect runner, `runPromise` or `runPromiseExit`, whose argument is a call to an imported or local function, such as `await serverRuntime.runPromise(unsubscribeWithToken(token))`. The rule now treats it like `await unsubscribeWithToken(token)`.
+
 ## 0.2.3
 
 ### Patch Changes
