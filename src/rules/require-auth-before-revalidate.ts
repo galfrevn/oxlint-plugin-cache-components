@@ -56,8 +56,13 @@ const INVALIDATION_APIS: ReadonlySet<NextApi> = new Set([
   "updateTag",
 ]);
 const EQUALITY_OPERATORS: ReadonlySet<string> = new Set(["!=", "!==", "==", "==="]);
-const SECRET_NAME = /secret|token|key/i;
-const SECRET_HEADER = /^(authorization|x-[\w-]*(secret|token|key|signature))$/i;
+const AUTH_NAME = /auth(?!or(?!iz|is))|session|permission|signature|webhook|verif|guard|protect/i;
+const AUTH_MODULE = /auth(?!or)|session|^@clerk\//i;
+const RATE_LIMIT_SEGMENT = /rate.?limit|limiter/i;
+const RATE_LIMIT_CALL = /[a-z]Limit$/;
+const SECRET_ENV_NAME = /secret|token|key/i;
+const SECRET_IDENTIFIER = /secret/i;
+const SECRET_HEADER = /^(authorization|x-[\w-]*(secret|token|key|signature|hmac)[\w-]*)$/i;
 const SECRET_COMPARISON_CALL = /equal|compare|verify|valid|check/i;
 
 interface AuthOptions {
@@ -67,6 +72,7 @@ interface AuthOptions {
 }
 
 interface CheckContext {
+  readonly analysis: FileAnalysis;
   readonly options: AuthOptions;
   readonly keys: VisitorKeys;
   readonly checkSecrets: boolean;
@@ -170,6 +176,7 @@ function isUnprotected(
     return false;
   }
   const check: CheckContext = {
+    analysis,
     options,
     keys: analysis.sourceCode.visitorKeys,
     checkSecrets: unit.context === "route-handler",
@@ -194,7 +201,10 @@ function isNestedUnit(analysis: FileAnalysis, node: Node): boolean {
 function isAuthCheck(node: Node, check: CheckContext): boolean {
   if (node.type === "CallExpression") {
     const path = getMemberPath(node.callee);
-    if (path && check.options.authFunctions.some((entry) => endsWith(path, entry))) {
+    if (path && (isAuthCall(path, check.options) || isRateLimitCall(path))) {
+      return true;
+    }
+    if (isImportedFromAuthModule(check.analysis, node.callee)) {
       return true;
     }
     return (
@@ -206,8 +216,43 @@ function isAuthCheck(node: Node, check: CheckContext): boolean {
     check.checkSecrets &&
     node.type === "BinaryExpression" &&
     EQUALITY_OPERATORS.has(node.operator) &&
-    containsSecretEnv(node, check.keys)
+    containsSecret(node, check.keys)
   );
+}
+
+function isAuthCall(path: readonly string[], options: AuthOptions): boolean {
+  const name = path.at(-1) ?? "";
+  return AUTH_NAME.test(name) || options.authFunctions.some((entry) => endsWith(path, entry));
+}
+
+function isRateLimitCall(path: readonly string[]): boolean {
+  return (
+    path.some((segment) => RATE_LIMIT_SEGMENT.test(segment)) ||
+    RATE_LIMIT_CALL.test(path.at(-1) ?? "")
+  );
+}
+
+function isImportedFromAuthModule(analysis: FileAnalysis, callee: Node): boolean {
+  const root = rootIdentifier(callee);
+  const definition = root ? analysis.findVariable(root)?.defs[0] : undefined;
+  const declaration = definition?.type === "ImportBinding" ? definition.parent : null;
+  return declaration?.type === "ImportDeclaration" && AUTH_MODULE.test(declaration.source.value);
+}
+
+function rootIdentifier(node: Node): (Node & { name: string }) | null {
+  const target = unwrapExpression(node);
+  switch (target.type) {
+    case "Identifier":
+      return target;
+    case "MemberExpression":
+      return rootIdentifier(target.object);
+    case "CallExpression":
+      return rootIdentifier(target.callee);
+    case "AwaitExpression":
+      return rootIdentifier(target.argument);
+    default:
+      return null;
+  }
 }
 
 function isSecretHeaderRead(call: ESTree.CallExpression): boolean {
@@ -226,16 +271,18 @@ function isSecretComparisonCall(
   keys: VisitorKeys,
 ): boolean {
   const name = path?.at(-1);
-  return name !== undefined && SECRET_COMPARISON_CALL.test(name) && containsSecretEnv(call, keys);
+  return name !== undefined && SECRET_COMPARISON_CALL.test(name) && containsSecret(call, keys);
 }
 
-function containsSecretEnv(root: Node, keys: VisitorKeys): boolean {
+function containsSecret(root: Node, keys: VisitorKeys): boolean {
   let found = false;
   walk(root, keys, (node) => {
     if (found || isFunctionNode(node)) {
       return SKIP;
     }
-    found = node.type === "MemberExpression" && isSecretEnvRead(node);
+    found =
+      (node.type === "MemberExpression" && isSecretEnvRead(node)) ||
+      (node.type === "Identifier" && SECRET_IDENTIFIER.test(node.name));
     return undefined;
   });
   return found;
@@ -245,7 +292,7 @@ function isSecretEnvRead(node: ESTree.MemberExpression): boolean {
   const name = getStaticPropertyName(node);
   return (
     name !== null &&
-    SECRET_NAME.test(name) &&
+    SECRET_ENV_NAME.test(name) &&
     getMemberPath(node.object)?.join(".") === "process.env"
   );
 }

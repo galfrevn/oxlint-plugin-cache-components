@@ -148,6 +148,55 @@ export async function publish() {
 import { updateTag } from "next/cache";
 export async function purge() { updateTag("posts"); }`,
     },
+    {
+      name: "an auth-like helper name such as requireCronAuth",
+      filename: ROUTE,
+      code: `
+import { revalidateTag } from "next/cache";
+export async function GET(request: Request) {
+  const unauthorized = requireCronAuth(request);
+  if (unauthorized) return unauthorized;
+  revalidateTag("plugins", "max");
+}`,
+    },
+    {
+      name: "a helper imported from an auth module",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { revalidatePath } from "next/cache";
+import { getViewer } from "@/lib/auth";
+export async function removeBot(id: string) {
+  const viewer = await getViewer();
+  if (!viewer) return;
+  revalidatePath("/my-bots");
+}`,
+    },
+    {
+      name: "a rate-limited public action",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { revalidateTag } from "next/cache";
+export async function trackInstall(slug: string) {
+  const { success } = await ratelimit.limit(slug);
+  if (!success) return;
+  revalidateTag(\`plugin-\${slug}\`, "max");
+}`,
+    },
+    {
+      name: "a webhook verified with an HMAC header and a secret constant",
+      filename: "app/api/webhooks/shopify/route.ts",
+      code: `
+import { revalidateTag } from "next/cache";
+const SHOPIFY_WEBHOOK_SECRET = process.env.SHOPIFY_WEBHOOK_SECRET;
+export async function POST(request: Request) {
+  const body = await request.text();
+  const hmac = request.headers.get("x-shopify-hmac-sha256");
+  if (!verifyWebhook(body, hmac, SHOPIFY_WEBHOOK_SECRET)) return new Response(null, { status: 401 });
+  revalidateTag("products", { expire: 0 });
+}`,
+    },
   ],
   invalid: [
     {
@@ -273,6 +322,20 @@ import { updateTag } from "next/cache";
 export const save = withLogging(async () => {
   updateTag("posts");
 });`,
+      errors: [{ messageId: "missingAuth" }],
+    },
+    {
+      name: "an author lookup is not an auth check",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+import { getAuthors } from "@/lib/authors";
+export async function publish() {
+  const author = await getAuthor();
+  await getAuthors();
+  updateTag("posts");
+}`,
       errors: [{ messageId: "missingAuth" }],
     },
   ],
