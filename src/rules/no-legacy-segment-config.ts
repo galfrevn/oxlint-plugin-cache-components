@@ -4,9 +4,12 @@ import type { Context, ESTree, Rule, Suggestion } from "@oxlint/plugins";
 import { getStringValue, unwrapExpression } from "../utils/ast.ts";
 import type { Node } from "../utils/ast.ts";
 import { BUILTIN_PROFILES, evaluateNumber } from "../utils/cache-life.ts";
+import { classifyFile } from "../utils/contexts.ts";
+import type { FileInfo } from "../utils/contexts.ts";
+import { getFileDirective } from "../utils/directives.ts";
 import { ruleDocsUrl } from "../utils/messages.ts";
 import {
-  analyze,
+  getAppDirs,
   getBoolean,
   getRuleOptions,
   STRING_LIST_SCHEMA,
@@ -60,23 +63,37 @@ export const noLegacySegmentConfig: Rule = defineRule({
   createOnce(context) {
     return {
       before() {
+        const options = getRuleOptions(context);
         return (
-          getBoolean(getRuleOptions(context), "cacheComponents", false) &&
+          getBoolean(options, "cacheComponents", false) &&
+          isSegmentConfigFile(
+            classifyFile(context.filename, context.cwd, getAppDirs(context, options), null),
+          ) &&
           textMentionsAll(context.sourceCode.text, LEGACY_EXPORTS)
         );
       },
       "Program:exit"() {
-        const analysis = analyze(context, getRuleOptions(context));
-        if (analysis.file.kind !== "segment" && analysis.file.kind !== "route-handler") {
+        const { ast } = context.sourceCode;
+        const file = classifyFile(
+          context.filename,
+          context.cwd,
+          getAppDirs(context, getRuleOptions(context)),
+          getFileDirective(ast),
+        );
+        if (!isSegmentConfigFile(file)) {
           return;
         }
-        for (const legacy of collectLegacyExports(context.sourceCode.ast)) {
+        for (const legacy of collectLegacyExports(ast)) {
           report(context, legacy);
         }
       },
     };
   },
 });
+
+function isSegmentConfigFile(file: FileInfo): boolean {
+  return file.kind === "segment" || file.kind === "route-handler";
+}
 
 function collectLegacyExports(program: ESTree.Program): LegacyExport[] {
   const locals = new Map<string, Node | null>();

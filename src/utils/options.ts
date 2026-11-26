@@ -62,11 +62,15 @@ export function getBoolean(options: RuleOptions, key: string, fallback: boolean)
   return typeof value === "boolean" ? value : fallback;
 }
 
+export function getAppDirs(context: Context, options: RuleOptions): readonly string[] {
+  return getStringList(context, options, "appDir") ?? DEFAULT_APP_DIRS;
+}
+
 export function analyze(context: Context, options: RuleOptions): FileAnalysis {
   return getFileAnalysis(
     { sourceCode: context.sourceCode, filename: context.filename, cwd: context.cwd },
     {
-      appDirs: getStringList(context, options, "appDir") ?? DEFAULT_APP_DIRS,
+      appDirs: getAppDirs(context, options),
       requestApis: getStringList(context, options, "requestApis") ?? [],
     },
   );
