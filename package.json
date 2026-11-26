@@ -1,7 +1,7 @@
 {
   "name": "oxlint-plugin-cache-components",
   "version": "0.1.0",
-  "description": "Lint rules that catch Next.js Cache Components errors before next start, for oxlint and ESLint.",
+  "description": "Oxlint rules that catch Next.js Cache Components errors before next start. Also runs in ESLint.",
   "keywords": [
     "oxlint",
     "oxlint-plugin",
@@ -41,7 +41,8 @@
   "files": [
     "dist",
     "docs",
-    "THIRD_PARTY_NOTICES.md"
+    "THIRD_PARTY_NOTICES.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsdown",

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 const ALLOWED = [
   /^dist\//,
   /^docs\/rules\/[\w-]+\.md$/,
-  /^(LICENSE|README\.md|THIRD_PARTY_NOTICES\.md|package\.json)$/,
+  /^(CHANGELOG\.md|LICENSE|README\.md|THIRD_PARTY_NOTICES\.md|package\.json)$/,
 ];
 const REQUIRED = [
   "dist/index.js",
