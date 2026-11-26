@@ -16,10 +16,13 @@ jobs:
   check:
     name: Format, lint, types, and package
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 24
           cache: pnpm
@@ -33,57 +36,72 @@ jobs:
   test:
     name: Test with oxlint ${{ matrix.oxlint }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         oxlint: ["1.95.0", latest]
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - if: matrix.oxlint != '1.95.0'
-        run: pnpm add oxlint@${{ matrix.oxlint }} --save-dev && pnpm add @oxlint/plugins@${{ matrix.oxlint }}
+        env:
+          OXLINT_VERSION: ${{ matrix.oxlint }}
+        run: |
+          pnpm add "oxlint@$OXLINT_VERSION" --save-dev
+          pnpm add "@oxlint/plugins@$OXLINT_VERSION"
       - run: pnpm test
 
   eslint:
     name: ESLint ${{ matrix.eslint }} smoke test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
         eslint: ["9", "10"]
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm add eslint@${{ matrix.eslint }} --save-dev
+      - env:
+          ESLINT_VERSION: ${{ matrix.eslint }}
+        run: pnpm add "eslint@$ESLINT_VERSION" --save-dev
       - run: pnpm vitest run --project e2e tests/e2e/eslint.test.ts
 
   runtime:
     name: Runtime on Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
         node: ["20.19.0", "22.12.0", "24", "26"]
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: ${{ matrix.node }}
       - run: node scripts/smoke.mjs
