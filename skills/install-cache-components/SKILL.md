@@ -28,6 +28,8 @@ Install as development dependencies, in the package that owns the lint config:
 
 Use the repository's package manager, for example `pnpm add -D oxlint oxlint-plugin-cache-components`. Do not change unrelated dependency ranges.
 
+If the package manager rejects a version because of a minimum release age policy, such as `minimumReleaseAge` in pnpm, do not add an exclusion or lower the policy. Tell the user, and install the newest version that the policy allows only if they agree.
+
 Complete when the package appears in `devDependencies` and the lockfile is updated.
 
 ## 3. Enable the recommended preset
@@ -45,7 +47,7 @@ export default defineConfig({
 });
 ```
 
-When the file already exists, add `cacheComponents.recommended` to its `extends` array instead of replacing the file.
+When the file already exists, add `cacheComponents.recommended` to its `extends` array instead of replacing the file. When the repository has no oxlint configuration, create `oxlint.config.ts` only if the nearest `package.json` has `"type": "module"`. Otherwise create `.oxlintrc.json`, because Node.js prints a `MODULE_TYPELESS_PACKAGE_JSON` warning on every run when it loads `oxlint.config.ts` from a package without `"type": "module"`.
 
 `.oxlintrc.json`:
 
