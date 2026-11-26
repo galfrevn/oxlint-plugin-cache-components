@@ -5,43 +5,48 @@
 ```
 oxlint-plugin-cache-components/                 # repo
 ├── AGENTS.md
-├── documentation/                       # these docs (internal planning)
-├── docs/rules/<rule>.md                 # public docs per rule (English), linked from meta.docs.url
+├── documentation/                       # design docs, rule specs, ADRs
+├── docs/rules/<rule>.md                 # public docs per rule, linked from meta.docs.url
 ├── src/
-│   ├── index.ts                         # eslintCompatPlugin({ meta, rules, configs })
-│   ├── configs.ts                       # oxlint presets (recommended, strict, all) + flat/recommended for ESLint
+│   ├── index.ts                         # eslintCompatPlugin({ meta, rules }) plus flat/* ESLint configs
+│   ├── configs.ts                       # oxlint presets: recommended, strict, all
 │   ├── rules/
-│   │   ├── no-request-api-in-cache.ts
-│   │   ├── no-cache-api-outside-cache.ts
-│   │   ├── require-cachelife-when-nested.ts
-│   │   ├── no-invalid-cache-nesting.ts
-│   │   ├── valid-invalidation-context.ts
-│   │   ├── no-promise-args-to-cache.ts
-│   │   ├── require-revalidate-tag-profile.ts
-│   │   ├── require-revalidate-path-type.ts
-│   │   └── require-auth-before-revalidate.ts
+│   │   ├── index.ts                     # rule registry and preset severities
+│   │   └── <rule>.ts                    # one file per rule
 │   └── utils/
-│       ├── analysis.ts                  # per-file analysis, cached (FileAnalysis)
-│       ├── directives.ts                # file and function directives
-│       ├── next-bindings.ts             # bindings imported from next/* and react
-│       ├── contexts.ts                  # file kind and context of each function
-│       ├── call-graph.ts                # intra-file call graph (+ JSX)
+│       ├── analysis.ts                  # per-file analysis, memoized (FileAnalysis)
+│       ├── ast.ts                       # walker, ESTree helpers, unconditional execution check
 │       ├── cache-life.ts                # profile table and parsing of cacheLife(...)
-│       └── messages.ts                  # docs URLs and message builders
+│       ├── call-graph.ts                # intra-file call graph (+ JSX)
+│       ├── contexts.ts                  # file kinds and function contexts
+│       ├── directives.ts                # file and function directives
+│       ├── fixes.ts                     # import planning and insertion helpers for suggestions
+│       ├── messages.ts                  # docs URLs and scope labels
+│       ├── next-bindings.ts             # bindings imported from next/* and react
+│       ├── options.ts                   # rule options, shared settings, prefilters
+│       └── props.ts                     # segment props such as searchParams
 ├── tests/
 │   ├── rules/<rule>.test.ts             # RuleTester
-│   └── utils/*.test.ts
-├── conformance/next-app/                # Next 16.4 app that confirms each error at runtime
+│   ├── utils/*.test.ts                  # analysis utilities, through a probe rule
+│   ├── plugin.test.ts                   # registry, docs, message coverage, presets
+│   ├── e2e/                             # builds dist/, runs the oxlint CLI and ESLint
+│   └── fixtures/                        # fixture app and configs for the e2e tests
 ├── scripts/
 │   ├── corpus/run.mjs                   # clones and lints the corpus, aggregates results
-│   ├── corpus/triage.md                 # manual TP/FP log per finding
-│   └── next-sync.mjs                    # compares canary use-cache-messages.ts and revalidate.ts with a snapshot
-├── skills/install-cache-components/SKILL.md   # skill for skills.sh (see spec.md)
+│   ├── corpus/triage.md                 # false-positive review per run
+│   ├── next-sync.mjs                    # compares canary sources with scripts/next-sync/snapshot/
+│   ├── smoke.mjs                        # runtime check with the oxlint CLI, used on Node 20 in CI
+│   └── check-package.mjs                # checks the files in the npm package
+├── skills/install-cache-components/     # skill for skills.sh, with hook recipes
 ├── package.json
-├── tsconfig.json
+├── tsconfig.json                        # type checks src, tests, and configs
+├── tsconfig.build.json                  # src only, with isolatedDeclarations for the d.ts build
 ├── tsdown.config.ts
+├── vitest.config.ts                     # unit and e2e projects
 └── oxlint.config.ts                     # the repo lints itself
 ```
+
+Planned and not built yet: `conformance/next-app/` (task T4.1) and `tests/fixtures/next/` (task T4.2).
 
 ## `package.json` (sketch)
 
@@ -54,11 +59,11 @@ oxlint-plugin-cache-components/                 # repo
     "./configs": { "types": "./dist/configs.d.ts", "import": "./dist/configs.js" }
   },
   "files": ["dist", "docs", "THIRD_PARTY_NOTICES.md"],
-  "engines": { "node": ">=20.19.0" },
-  "peerDependencies": { "oxlint": ">=1.95.0" },
-  "peerDependenciesMeta": { "oxlint": { "optional": true } },   // optional, for ESLint users
+  "engines": { "node": "^20.19.0 || >=22.12.0" },                   // same range as oxlint
+  "peerDependencies": { "eslint": ">=9.0.0", "oxlint": ">=1.95.0" },
+  "peerDependenciesMeta": { "eslint": { "optional": true }, "oxlint": { "optional": true } },
   "dependencies": { "@oxlint/plugins": "^1.95.0" },
-  "devDependencies": { "oxlint": "1.95.0", "vitest": "…", "tsdown": "…", "typescript": "…", "eslint": "^9" }
+  "devDependencies": { "oxlint": "1.95.0", "eslint": "10.x", "vitest": "5.x", "tsdown": "0.23.x", "typescript": "7.x", "oxfmt": "0.80.x" }
 }
 ```
 
@@ -113,7 +118,7 @@ export interface FileAnalysis {
 export function getFileAnalysis(context): FileAnalysis; // memoized in WeakMap<Program, FileAnalysis>
 ```
 
-The result is memoized per `Program` node. **Unverified:** whether oxlint passes the same AST object to every rule in a file. If it does not, each rule recomputes the analysis. That is O(n) and should not be a problem, but it needs measuring.
+The result is memoized per `Program` node and per analysis options (`appDir` and `requestApis`). oxlint passes the same AST object to every rule in a file (**Verified**, 2026-11-26), so the rules share one analysis. Each cache entry also stores the source text and file name, and is reused only when both match.
 
 ### Directives (`utils/directives.ts`)
 
@@ -134,9 +139,9 @@ export function getFileDirective(program): Directive | null;
 export function getFunctionDirective(fn: FunctionNode): Directive | null;
 ```
 
-- In ESTree, a directive is an `ExpressionStatement` with a `directive` property (string) at the start of `Program.body` or of a function's body `BlockStatement`. **Unverified:** confirm with `RuleTester` in task M1.
+- In ESTree, a directive is an `ExpressionStatement` with a `directive` property (string) at the start of `Program.body` or of a function's body `BlockStatement` (**Verified** with `RuleTester`, 2026-11-26).
 - Only prologues count: the directive must come before any other statement.
-- Double and single quotes are equivalent. Spaces after `:` are normalized. It is **Unverified** whether Next accepts `'use cache:remote'` without a space. If Next does not accept it, the directive is not recognized.
+- Double and single quotes are equivalent. The directive must be exactly `use cache` or `use cache: <kind>` with one space after the colon, as in the Next.js transform. `use cache: default` is the public cache. Next.js rejects `'use cache:remote'` at compile time, so the plugin does not recognize it.
 - Functions: `FunctionDeclaration`, `FunctionExpression`, and `ArrowFunctionExpression` with a block body.
 
 ### Cache scope
@@ -163,7 +168,8 @@ export function isCallTo(node: CallExpression, ref: Ref | undefined, b: NextBind
 ```
 
 - Uses scope analysis (`context.sourceCode.getScope`) to resolve the identifier to its `ImportSpecifier`. This covers aliases (`import { cookies as c }`) and namespaces (`import * as h from "next/headers"; h.cookies()`). A shadowed identifier does not count.
-- Older versions of `next/cache` also export `unstable_cacheLife` and `unstable_cacheTag`. They are recognized as aliases. **Unverified:** that they are recognized as aliases.
+- `next/cache` also exports `unstable_cacheLife` and `unstable_cacheTag` as deprecated aliases. They resolve to `cacheLife` and `cacheTag`. A default import of `next/cache`, such as `cache.revalidateTag()`, resolves like a namespace import.
+- A function is either a **unit** or a transparent callback. A function passed directly as an argument, such as an `Array.prototype.map` callback, is transparent: its calls belong to the enclosing unit. Callbacks of `after()`, `unstable_cache()`, and `React.cache()` are units.
 
 ### Contexts (`utils/contexts.ts`)
 
@@ -248,7 +254,7 @@ import { noRequestApiInCache } from "../../src/rules/no-request-api-in-cache.ts"
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "tsx" } } }); // "tsx": Unverified; if it does not exist, use "ts" + jsx
+const tester = new RuleTester({ languageOptions: { parserOptions: { lang: "tsx" } } }); // "tsx" is supported (Verified)
 
 tester.run("cache-components/no-request-api-in-cache", noRequestApiInCache, {
   valid: [/* … */],
@@ -257,9 +263,10 @@ tester.run("cache-components/no-request-api-in-cache", noRequestApiInCache, {
 ```
 
 - Every valid and invalid example in `rules/<rule>.md` is a test. If you add a test that is not in the specification, add it to the specification too.
-- To control `context.filename` (route.ts, page.tsx, proxy.ts), RuleTester accepts `filename` per case. **Unverified** in oxlint; it exists in ESLint.
+- To control `context.filename` (route.ts, page.tsx, proxy.ts), RuleTester accepts `filename` per case (**Verified** in oxlint, 2026-11-26).
 - The utils (`directives`, `next-bindings`, `contexts`, `call-graph`, and `cache-life`) have their own tests. They use `RuleTester` with a test rule that serializes the analysis into the message.
-- Coverage: 100% of messageIds and suggestions.
+- Coverage: 100% of messageIds and suggestions. `tests/plugin.test.ts` fails when a messageId does not appear in its rule's tests, or when a rule has no public doc.
+- End-to-end: `tests/e2e/` builds `dist/` in a Vitest global setup, runs the oxlint CLI on `tests/fixtures/app` with the two configuration forms from `spec.md`, and runs ESLint with `flat/recommended` on `tests/fixtures/eslint`.
 
 ### 2. Fixtures derived from Next.js
 
@@ -301,14 +308,14 @@ Roles: `corpus` (measured), `corpus-vercel-template` (`vercel/shop`, high priori
 #### Runner (`scripts/corpus/run.mjs`)
 
 1. Take the N repos with the most stars (default 60), plus `vercel/shop`.
-2. Run `git clone --depth 1 --filter=blob:none` into `.corpus/<owner>__<repo>` (listed in `.gitignore`). **It installs no dependencies and runs no code from the repos.**
-3. Run `oxlint -c scripts/corpus/oxlintrc.json --format json <repo>` with a config that enables **only** our plugin, using the `all` preset.
-4. Aggregate by rule and by messageId: number of findings, files, and repos.
-5. Write `scripts/corpus/results/<date>.json` and a summary in Markdown.
+2. Run `git clone --depth 1` into `.corpus/<owner>__<repo>` (listed in `.gitignore`). **It installs no dependencies and runs no code from the repos.**
+3. Generate `.corpus/oxlintrc.json` from the `all` preset in `dist/configs.js`, with native rules off, and run `oxlint -c .corpus/oxlintrc.json --disable-nested-config --format json <repo>`. `--disable-nested-config` keeps oxlint from loading configuration files from the cloned repos, which could run their code. With `--baseline`, it also times oxlint with its default config.
+4. Aggregate by rule and by messageId, matching each message against the rule's message templates: number of findings, files, and repos. Diagnostics whose message starts with `Error running JS plugin` are counted as plugin errors.
+5. Write `scripts/corpus/results/<date>.json` and a summary in Markdown. The results stay local (listed in `.gitignore`), because they name files in third-party repositories.
 
 #### Triage (`scripts/corpus/triage.md`)
 
-For each finding, write one line: `repo | file:line | rule | messageId | TP/FP/unsure | note`. Reviewing a sample of up to 30 per rule is enough. Then extrapolate.
+Review each finding in the local results: `repo | file:line | rule | messageId | TP/FP/unsure | note`. Reviewing a sample of up to 30 per rule is enough. Then extrapolate. The committed `triage.md` records the counts, the FP rate per rule, and the false-positive patterns, without naming repositories with confirmed bugs.
 
 #### Metric and thresholds
 
@@ -328,9 +335,10 @@ For each finding, write one line: `repo | file:line | rule | messageId | TP/FP/u
 
 ### 5. CI (GitHub Actions)
 
-- `lint` (oxlint on this repo), `typecheck`, `test`, and `build`.
-- `oxlint` matrix: the minimum supported version (1.95.0) and `latest`.
-- ESLint 9 smoke test: loads `flat/recommended` and lints 3 fixtures ([ADR-002](decisions.md#adr-002-eslint-compatibility-as-a-secondary-target-best-effort)).
+- `check`: oxfmt, oxlint on this repo, `typecheck`, `build` (with publint and Are the Types Wrong), and `scripts/check-package.mjs`.
+- `test` matrix: the minimum supported oxlint version (1.95.0) and `latest`.
+- ESLint 9 and 10 smoke test: loads `flat/recommended` and lints 3 fixtures ([ADR-002](decisions.md#adr-002-eslint-compatibility-as-a-secondary-target-best-effort)).
+- Runtime matrix: builds on Node.js 24, then runs `scripts/smoke.mjs` with the oxlint CLI on Node.js 20.19, 22.12, 24, and 26.
 - Weekly `next-sync` job: downloads `use-cache-messages.ts` and `revalidate.ts` from `vercel/next.js@canary`, compares them with `scripts/next-sync/snapshot/`, and opens an issue if they changed. This surfaces candidate new rules and detects outdated messages.
 
 ### Corpus list
