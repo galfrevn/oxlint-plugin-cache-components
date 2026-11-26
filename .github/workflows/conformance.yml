@@ -1,0 +1,40 @@
+name: Conformance
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - conformance/**
+      - scripts/conformance.mjs
+      - src/rules/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: conformance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  conformance:
+    name: Confirm rules against Next.js
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            conformance/next-app/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run conformance
+      - if: always()
+        run: cat conformance/RESULTS.md >> "$GITHUB_STEP_SUMMARY"
