@@ -20,12 +20,14 @@ The `cacheLife` docs define short as "`revalidate` of `0`, or `expire` under 5 m
 1. Build the graph of cached functions in the file. Edges come from `CallExpression` and `JSXOpeningElement`, plus (optionally, with `followHelpers`) edges through helpers that have no directive.
 2. For each **inner** cached function I with kind `public`, `remote`, or `custom`, find `cacheLife` calls within its scope and parse them with `parseCacheLifeCall`:
    - `cacheLife("seconds")` or a name listed in `shortProfiles` → short.
-   - `cacheLife({ revalidate: 0 })` or `cacheLife({ expire: <numeric literal < 300> })` → short.
+   - `cacheLife({ revalidate: 0 })` or `cacheLife({ expire: <numeric literal < 300> })` → short. Numeric literals, `Infinity`, unary `-`, and `+ - * /` between literals are evaluated, so `{ expire: 60 * 4 }` is short.
+   - `cacheLife()` calls in helpers without a directive that I reaches also count for I.
    - Anything else (identifier, unknown name, expression) → `unknown` → **do not report**.
    - If there are several calls (in branches), one short call is enough.
 3. For each **outer** cached function O that reaches I (directly or through helpers, depth ≤ 10):
-   - If O has **any** `cacheLife` call in its own scope (even a conditional one) → valid.
-   - Otherwise → report on O's directive node, naming I and its profile.
+   - If O has **any** `cacheLife` call in its own scope (even a conditional one), or in a helper without a directive that it reaches (whatever `followHelpers` says) → valid.
+   - Otherwise → report on O's directive node, naming I and its profile. For an export of a `"use cache"` file, which has no directive of its own, report on the function name. Report once per outer function, naming the first short-lived inner function.
+   - If both `revalidate: 0` and a short `expire` apply, `zeroRevalidate` wins, as in Next.js.
 4. Out of scope in v0.1: O or I with kind `private` (Next does not mention it in the error), functions from other files, and undeclared custom profiles.
 
 ## Examples
@@ -76,7 +78,9 @@ type Options = [{ shortProfiles?: string[]; followHelpers?: boolean }]; // defau
 
 ## Fixes and suggestions
 
-On the outer function, `addCacheLifeShort` inserts `cacheLife("{{innerProfile}}");` after the directive, which keeps it dynamic. `addCacheLifeMinutes` inserts `cacheLife("minutes");`, which prerenders it. If the import is missing, the suggestion adds `cacheLife` to the existing `next/cache` import or creates a new one.
+On the outer function, `addCacheLifeShort` inserts a copy of the inner `cacheLife(...)` call after the directive, which keeps it dynamic. `addCacheLifeMinutes` inserts `cacheLife("minutes");`, which prerenders it. Both reuse the callee of the inner call, such as `cacheLife`, an alias, or `cache.cacheLife`, so the import always exists: the inner function already calls it in the same file. For an export of a `"use cache"` file, the call goes at the start of the body.
+
+Messages for the suggestions: `addCacheLifeShort`: ``` Add `{{call}}` to `{{outer}}` to keep it dynamic ```; `addCacheLifeMinutes`: ``` Add `{{call}}` to `{{outer}}` to prerender it ```.
 
 ## Edge cases
 
@@ -102,4 +106,6 @@ Low. The rule only reports literals it can evaluate.
 - [ ] Outer function with a conditional `cacheLife` → valid.
 - [ ] Through a helper without a directive (`followHelpers` true/false).
 - [ ] Custom profile in `shortProfiles` → error; not configured → valid.
-- [ ] Suggestions with and without an existing import.
+- [ ] Suggestions reuse an aliased import and insert at the body start of a file-level cached export.
+- [ ] `revalidate: 0` with a short `expire` → `zeroRevalidate`.
+- [ ] Inner short life set in a helper → error; outer `cacheLife` in a helper → valid.

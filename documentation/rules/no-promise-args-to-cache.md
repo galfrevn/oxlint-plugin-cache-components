@@ -14,6 +14,8 @@ This error is expensive. The code gives no clear message, only a 50-second wait 
 
 ## Detection
 
+0. **Prefilter** in `before`: the source text must contain `use cache`, and one of `params`, `Params`, `next/headers`, or the name of a configured `requestApis` entry.
+
 1. Identify the cached functions and components in the file: a function directive, or an export from a `'use cache'` file.
 2. Walk their call sites: a `CallExpression` whose callee resolves to the cached function, and a `JSXOpeningElement` for the cached component. Each attribute is an argument.
 3. An argument or attribute is a **request promise** if it is:

@@ -19,7 +19,8 @@ It is a silent no-op: the developer or agent thinks the cache was invalidated, b
 ## Detection
 
 1. A `CallExpression` to the `revalidatePath` binding from `next/cache` with `arguments.length === 1`.
-2. The argument is a string `Literal`, or a `TemplateLiteral` whose static parts (`quasis`) contain a dynamic segment: `[name]`, `[...name]`, or `[[...name]]` (regex `/\[\[?\.{0,3}[^\]/]+\]\]?/`).
+2. The argument is a string `Literal`, or a `TemplateLiteral` whose static parts (`quasis`) contain a dynamic segment: `[name]`, `[...name]`, or `[[...name]]`. The test is the regex that Next.js uses in strict mode, `TEST_STRICT_ROUTE = /\/\[[^/]+\](?=\/|$)/` from `is-dynamic.ts`, so the whole segment must be in brackets. A template literal is tested with a placeholder for each expression, so `` `/blog/[slug]${suffix}` `` is not reported.
+   - Why the regex changed: the earlier draft used `/\[\[?\.{0,3}[^\]/]+\]\]?/`, which also matched `/blog/post-[id]`. Next.js does not treat that path as dynamic, and does not warn.
 3. A concrete path (`/blog/hello`) or a template with expressions (`/blog/${slug}`) → valid: it is a concrete path.
 
 ## Examples
@@ -34,7 +35,7 @@ revalidatePath("/");                         // valid
 
 ## Fixes and suggestions
 
-`addPageType` adds `"page"` as the second argument (the most common case). `addLayoutType` adds `"layout"`.
+`addPageType` adds `"page"` as the second argument (the most common case). `addLayoutType` adds `"layout"`. Both use the quote style of the path argument. Messages: ``` Add "page" as the type ``` and ``` Add "layout" as the type ```.
 
 ## False-positive risk
 

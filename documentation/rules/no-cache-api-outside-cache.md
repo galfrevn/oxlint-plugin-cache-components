@@ -18,15 +18,16 @@ Agents often make this mistake. They call `cacheTag` in a Server Action or in an
 
 ## Detection
 
-1. Bindings `cacheTag` and `cacheLife` from `next/cache`. Also `unstable_cacheTag` and `unstable_cacheLife` (**Unverified**).
+1. Bindings `cacheTag` and `cacheLife` from `next/cache`. Also `unstable_cacheTag` and `unstable_cacheLife`, which `next/cache` still exports as deprecated aliases (**Verified** in `packages/next/cache.js`, 2026-11-26).
 2. For each call:
    - If `getCacheScope(call)` is `public`, `remote`, `custom`, or `private`, the call is valid.
    - If the scope is `unstable` (a `unstable_cache` callback), **report** it. `unstable_cache` uses its own `tags` and `revalidate` options.
    - If there is no scope, compute `getEffectiveContexts(call)`:
      - **Module scope** (no enclosing function): report `moduleScope`.
-     - If the enclosing function, or any function on the ancestor path, is `server-action`, `route-handler`, `client`, `proxy`, `build-time-generator`, or `component-render` without a directive: report `outside`.
-     - If the function is a **non-exported** helper and **all** of its callers in the file are outside a cache scope: report `outside`.
+     - If the enclosing function, or any function on the ancestor path, is `server-action`, `route-handler`, `client`, `proxy`, `build-time-generator`, or `metadata`, or is the default export of a render segment file (`page`, `layout`, `template`, `default`, `not-found`, `loading`, `forbidden`, `unauthorized`, `global-not-found`): report `outside`.
+     - If the function is a **non-exported** helper and **all** of its callers in the file are in one of those contexts: report `outside`. If every caller is in one of those contexts or in an `unstable_cache` callback, and at least one is in an `unstable_cache` callback, report `unstableCache`.
      - If the function is an **exported** helper without a directive, and the file is not `'use cache'`: **do not report**. It may be called from a cached function in another file ([ADR-005](../decisions.md#adr-005-per-file-analysis-and-false-positive-policy)).
+     - A PascalCase component outside a segment file is **not** treated as outside a cache scope. A cached parent in another file may render it, and its render then runs inside that cache, where `cacheTag()` works. A playground in the corpus relies on this behavior.
 
 ## Examples
 
@@ -93,7 +94,7 @@ None in v0.1.
 
 ## Fixes and suggestions
 
-If the enclosing function is `async`, is not a Server Action, Route Handler, or client function, and is a helper or component, the rule suggests `addUseCache`. The suggestion inserts `"use cache";` as the first statement of the body. It is only a suggestion because it changes semantics: it caches the whole function.
+If the enclosing function is `async`, has a block body, and is a helper, a component, or a metadata generator (not a Server Action, Route Handler, client, proxy, or build-time function), the rule suggests `addUseCache`. The suggestion inserts `"use cache";` as the first statement of the body. It is only a suggestion because it changes semantics: it caches the whole function.
 
 ## Edge cases
 
@@ -122,4 +123,7 @@ Low. The rule reports only in provable contexts. The main risk is misclassifying
 - [ ] `unstable_cache` callback → `unstableCache`.
 - [ ] Non-exported helper with a single uncached caller → `outside`; exported helper → valid.
 - [ ] Inside `use cache`, `use cache: private`, and `use cache: remote` → valid.
+- [ ] Inside `generateStaticParams` and a client component → `outside`.
+- [ ] Helper called only from an `unstable_cache` callback → `unstableCache`.
+- [ ] Component outside a segment file → valid.
 - [ ] `addUseCache` suggestion produces the expected code.

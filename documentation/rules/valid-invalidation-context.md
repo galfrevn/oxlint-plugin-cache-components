@@ -38,6 +38,8 @@ Next's code (`revalidate.ts` and `use-cache-messages.ts`):
 3. Report if **any** provable effective context is invalid for that API. The message names the context and, when relevant, the caller.
 4. Priority when several contexts are invalid (same as Next): `build-time-generator` > `cached` > `component-render` > the rest.
 5. If all contexts are `unknown` or valid, do not report.
+6. Contexts reach a helper through its callers in the same file. A local helper declared inside a function and never called takes the context of that function. A callback passed to `after()` and a function passed as a JSX attribute, such as `onClick`, are `unknown`.
+7. Message choice: in Route Handlers, `generateMetadata`, Proxy, and Client Components, `updateTag()` reports `updateTagOutsideAction` and `refresh()` reports `refreshOutsideAction`. `revalidateTag()` and `revalidatePath()` in Proxy and Client Components report `inProxyOrClient`, with `{{where}}` set to `Proxy` or `Client Components`.
 
 ## Examples
 
@@ -99,7 +101,7 @@ export async function POST(req: Request) {
 
 ## Fixes and suggestions
 
-- `updateTag` in a Route Handler → `useRevalidateTag`: replace it with `revalidateTag(<tag>, { expire: 0 })`, which keeps the immediate expiration. If the import is missing, add it.
+- `updateTag` in a Route Handler → `useRevalidateTag`: replace it with `revalidateTag(<tag>, { expire: 0 })`, which keeps the immediate expiration. If `revalidateTag` is not imported, the suggestion adds it to the existing `next/cache` import. Through a namespace import, it uses the same namespace. Message: ``` Replace with `revalidateTag(tag, { expire: 0 })` ```.
 - `refresh` in a Route Handler: no suggestion, because there is no equivalent.
 
 ## Edge cases

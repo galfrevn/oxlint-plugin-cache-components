@@ -31,17 +31,17 @@ According to the `use cache` docs, on a dynamic route the error "can pass `next 
 
 ## Detection
 
-1. **Prefilter** in `before`: if the source text contains none of `next/headers`, `next/server`, `searchParams`, or any configured `requestApis` entry, return `false`.
+1. **Prefilter** in `before`: if the source text contains neither `use cache` nor `unstable_cache`, return `false`. Otherwise, if it contains none of `next/headers`, `next/server`, `searchParams`, or the name of any configured `requestApis` entry, and the file is not a `route` file, return `false`.
 2. **Bindings:** `cookies`, `headers`, and `draftMode` from `next/headers`; `connection` from `next/server`; `unstable_cache` from `next/cache`; and the `requestApis` option entries. Aliases and namespace imports are included.
 3. **Direct uses.** For each `CallExpression` to those bindings (with or without `await`, and also inside a chained `.get()`):
    - Compute `getCacheScope(call)`.
    - If there is a scope and the matrix says error, report the call.
    - For `draftMode`, report only a `MemberExpression` `.enable` or `.disable` on the result, whether it is `(await draftMode()).enable()` or a variable.
 4. **`searchParams`:** in a function with a `CacheScope` that is a segment component (`page`), report if the `searchParams` parameter (destructured, or as `props.searchParams`) is **read**: awaited, accessed as a member, or passed to another function. Declaring it without using it is not reported.
-5. **Route Handler:** in `route-handler` files, if a cached function (for example, a closure defined inside `GET`) references the first parameter of an exported method (`request` or `req`) and accesses `.headers`, `.cookies`, `.nextUrl`, `.url`, `.json`, `.text`, `.formData`, `.body`, or `.signal`, report it.
+5. **Route Handler:** in `route-handler` files, if a cached function (for example, a closure defined inside `GET`, or `GET` itself with a directive) references the first parameter of an exported method (whatever its name, usually `request` or `req`) and accesses `.headers`, `.cookies`, `.nextUrl`, `.url`, `.json`, `.text`, `.formData`, `.body`, or `.signal`, report it.
 6. **Transitive, same file.** For each function F **without** a cache scope that uses a request API, search the call graph for each cached function C that reaches F (`reachableFrom`, depth 10, through calls and JSX). Report **at the call site inside C** with the `transitive` message. There is one report per (C, API) pair. If the helper reads several APIs, the first one is reported.
    - The request API call must run unconditionally in F, and every call on the path after the one in C must run unconditionally in its function. A call is conditional when it is inside an `if` or `switch` branch, a ternary branch, the right side of `&&`, `||`, or `??`, a loop body, a `catch` clause, a default parameter value, an optional call, or a callback, or when a `return`, `throw`, `break`, or `continue` can run before it. A `try` block counts as unconditional.
-   - Why: on the corpus run of 2026-11-26, `webkul/odoo-react-nextjs-commerce` produced 8 `transitive` reports, all false positives. Its `odooFetch()` helper reads `cookies()` only inside `if (is_session)`, and the cached callers never pass `is_session`. With this condition, the only remaining `transitive` report on the corpus is a true positive.
+   - Why: on the corpus run of 2026-11-26, one repository produced 8 `transitive` reports, all false positives. Its fetch helper reads `cookies()` only inside `if (is_session)`, and the cached callers never pass `is_session`. With this condition, the only remaining `transitive` report on the corpus is a true positive.
 7. Functions with `'use server'` stop the search. A nested action does not inherit the cache scope.
 
 ## Examples
