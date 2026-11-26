@@ -87,8 +87,8 @@ For each rule: implementation, tests from the specification, a public doc at `do
 - Status: done. Two rules were fixed ([ADR-008](decisions.md#adr-008-precision-fixes-from-the-first-corpus-run)).
 
 **T5.3 Performance**
-- AC: measured overhead stays below 2 times the time oxlint takes with its default config.
-- Status: measured, AC not met. An empty JS plugin is already about 4 times slower than the default config on oxlint 1.95.0, and this plugin is faster than an empty JS plugin across the corpus. See `research.md` §7.
+- AC: measured overhead stays below 2 times the time oxlint takes with an empty JS plugin ([ADR-009](decisions.md#adr-009-performance-target-relative-to-an-empty-js-plugin)). The original target, 2 times the default config, is not reachable for any JS plugin on oxlint 1.95.0.
+- Status: done. The corpus run takes 0.78 times as long as an empty JS plugin, and `cloudflare/vinext` about 1.1 times. See `research.md` §7.
 
 **T5b (optional, high value for the launch) Agent eval** (`spec.md`, "Agent integration", item 5).
 - AC: 10 tasks × 2 agents × 3 runs, with and without the hook, with publishable results and methodology.

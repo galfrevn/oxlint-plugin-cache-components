@@ -137,5 +137,5 @@ Measured on 2026-11-26 on an Apple Silicon laptop with Node.js 26.7.0 and oxlint
 
 - The JS plugin bridge dominates. An empty JS plugin is about 4 times slower than the default config, because oxlint transfers every AST to JavaScript.
 - This plugin is faster than the empty plugin across the corpus, because each rule's `before` hook returns `false` for files without `next/` or `use cache`, and then the AST is not transferred.
-- The roadmap target (task T5.3: under 2 times the default config) is not reachable for any JS plugin on oxlint 1.95.0. Against an empty JS plugin, the overhead of the rules is about 10% on `cloudflare/vinext`.
+- The original roadmap target (task T5.3: under 2 times the default config) is not reachable for any JS plugin on oxlint 1.95.0. Against an empty JS plugin, the overhead of the rules is about 10% on `cloudflare/vinext`, and the corpus run takes 0.78 times as long. [ADR-009](decisions.md#adr-009-performance-target-relative-to-an-empty-js-plugin) moves the target to the empty plugin. `pnpm corpus --baseline` reproduces the three timings.
 - The oxlint team plans to send only the nodes a rule needs to JavaScript (see §1, "Performance"). That change would reduce the bridge cost without changes here.

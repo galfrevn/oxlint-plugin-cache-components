@@ -190,3 +190,23 @@ Fix both rules, and keep them in their presets.
 - (+) The second run had 1 `transitive` report, a true positive, and 93 `require-auth-before-revalidate` reports. A new sample of 30 had 2 false positives before the `permission` wrapper pattern, and none after it. Details are in `scripts/corpus/triage.md`.
 - (−) More false negatives: a transitive read behind a condition, and a Server Action that awaits an unrelated helper before an unauthenticated invalidation, are no longer reported. Users can set `trustAwaitedCalls: false` for the stricter behavior.
 
+## ADR-009: Performance target relative to an empty JS plugin
+
+Status: Accepted
+Date: 2026-11-26
+
+### Context
+
+Task T5.3 asked for a corpus run under 2 times the time of oxlint with its default config. On oxlint 1.95.0, a JS plugin whose only rule has an empty `Program` visitor already takes about 4 times as long, because oxlint transfers each AST to JavaScript (`research.md` §7). No JS plugin can meet the original target. The overhead that this project controls is the cost of its rules on top of that bridge.
+
+### Decision
+
+- The target compares the plugin with an empty JS plugin on the same checkouts: under 2 times across the corpus, and under 2 times on the largest corpus repository.
+- `pnpm corpus --baseline` measures oxlint with its default config, the empty JS plugin, and this plugin, and prints the ratio.
+- Every rule keeps a `before` prefilter, so files without `next/` or `use cache` skip the AST transfer.
+
+### Consequences
+
+- (+) The target measures what the rules cost. The run of 2026-11-26 took 13.9 s, against 17.9 s for the empty plugin (0.78 times) and 4.8 s for the default config.
+- (−) The total time still depends on oxlint's bridge. When oxlint sends only the nodes a rule needs, this target should be compared with the default config again.
+

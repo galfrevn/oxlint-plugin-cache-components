@@ -323,7 +323,7 @@ Review each finding in the local results: `repo | file:line | rule | messageId |
 - `recommended` as error: **< 5%**.
 - `recommended` as warn (heuristics): **< 15%**.
 - If a rule exceeds its threshold, fix it or move it to `strict`. Record the decision in an ADR.
-- Performance: the full corpus run with our plugin must not take more than 2 times as long as oxlint with its default config. Measure with `hyperfine` or `time`.
+- Performance: the full corpus run with our plugin must not take more than 2 times as long as oxlint with an empty JS plugin ([ADR-009](decisions.md#adr-009-performance-target-relative-to-an-empty-js-plugin)). `pnpm corpus --baseline` measures both.
 
 #### Reporting real bugs (carefully)
 
