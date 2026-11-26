@@ -1,0 +1,5 @@
+{
+  "expect": "error",
+  "rule": "no-legacy-segment-config",
+  "output": "Route segment config \"revalidate\" is not compatible with `nextConfig.cacheComponents`"
+}

@@ -1,0 +1,5 @@
+{
+  "expect": "error",
+  "rule": "serializable-cache-args",
+  "output": "Cannot access description on the server"
+}

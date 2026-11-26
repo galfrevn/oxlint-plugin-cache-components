@@ -1,0 +1,5 @@
+{
+  "expect": "observe",
+  "rule": "no-introspect-passthrough",
+  "output": "data-count"
+}

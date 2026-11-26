@@ -1,0 +1,5 @@
+{
+  "expect": "observe",
+  "rule": "no-react-cache-across-boundary",
+  "output": "getSettings ran"
+}
