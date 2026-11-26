@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Format, lint, types, and package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run format:check
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+      - run: pnpm run build
+      - run: node scripts/check-package.mjs
+
+  test:
+    name: Test with oxlint ${{ matrix.oxlint }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        oxlint: ["1.95.0", latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - if: matrix.oxlint != '1.95.0'
+        run: pnpm add oxlint@${{ matrix.oxlint }} --save-dev && pnpm add @oxlint/plugins@${{ matrix.oxlint }}
+      - run: pnpm test
+
+  eslint:
+    name: ESLint ${{ matrix.eslint }} smoke test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        eslint: ["9", "10"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm add eslint@${{ matrix.eslint }} --save-dev
+      - run: pnpm vitest run --project e2e tests/e2e/eslint.test.ts
+
+  runtime:
+    name: Runtime on Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["20.19.0", "22.12.0", "24", "26"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - run: node scripts/smoke.mjs
