@@ -15,7 +15,7 @@ The rule reports:
 | `cookies()`, `headers()` | error | allowed | error |
 | `searchParams` of a page, read inside a cache scope | error | allowed | error |
 | `connection()` | error | error | error |
-| `draftMode().enable()`, `draftMode().disable()` | error | not reported | error |
+| `draftMode().enable()`, `draftMode().disable()` | error | error | error |
 | `request.headers`, `request.json()`, and other request reads in a Route Handler | error | not reported | error |
 | `draftMode().isEnabled` | allowed | allowed | allowed |
 

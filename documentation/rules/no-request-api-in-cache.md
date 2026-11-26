@@ -24,7 +24,7 @@ According to the `use cache` docs, on a dynamic route the error "can pass `next 
 | `cookies()`, `headers()` | error | allowed | error |
 | `searchParams` (page prop) | error | allowed | error |
 | `connection()` | error | **error** | error |
-| `draftMode().enable()` / `.disable()` | error | **Unverified**; not reported in v0.1 | error |
+| `draftMode().enable()` / `.disable()` | error | **error** (Verified in the conformance app) | error |
 | `draftMode().isEnabled` | allowed | allowed | allowed |
 | `request.*` of a Route Handler | error | **Unverified**; not reported | error |
 | `next/root-params` | allowed | allowed | allowed |
@@ -36,7 +36,7 @@ According to the `use cache` docs, on a dynamic route the error "can pass `next 
 3. **Direct uses.** For each `CallExpression` to those bindings (with or without `await`, and also inside a chained `.get()`):
    - Compute `getCacheScope(call)`.
    - If there is a scope and the matrix says error, report the call.
-   - For `draftMode`, report only a `MemberExpression` `.enable` or `.disable` on the result, whether it is `(await draftMode()).enable()` or a variable.
+   - For `draftMode`, report only a `MemberExpression` `.enable` or `.disable` on the result, whether it is `(await draftMode()).enable()` or a variable. This includes `"use cache: private"`: on Next.js 16.4.6 the call throws there too (conformance case `request-api-draft-mode-private`).
 4. **`searchParams`:** in the default export, `generateMetadata`, and `generateViewport` of a `page` file, report the first read of the `searchParams` parameter (destructured, or as `props.searchParams`) that is inside a cache scope: awaited, accessed as a member, or passed to another function. The scope can be the function itself or a cached function declared inside it. Declaring it without using it is not reported. Next.js throws the same error for `generateMetadata` and `generateViewport` (`test/e2e/app-dir/use-cache-search-params`).
 5. **Route Handler:** in `route-handler` files, if a cached function (for example, a closure defined inside `GET`, or `GET` itself with a directive) references the first parameter of an exported method (whatever its name, usually `request` or `req`) and accesses `.headers`, `.cookies`, `.nextUrl`, `.url`, `.json`, `.text`, `.formData`, `.body`, or `.signal`, report it.
 6. **Transitive, same file.** For each function F **without** a cache scope that uses a request API, search the call graph for each cached function C that reaches F (`reachableFrom`, depth 10, through calls and JSX). Report **at the call site inside C** with the `transitive` message. There is one report per (C, API) pair. If the helper reads several APIs, the first one is reported.

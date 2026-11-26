@@ -195,7 +195,7 @@ function checkDraftModeMutation(
     return;
   }
   const scope = analysis.getCacheScope(call);
-  if (scope && scope.kind.type !== "private") {
+  if (scope) {
     context.report({
       node: call,
       messageId: "draftModeMutation",

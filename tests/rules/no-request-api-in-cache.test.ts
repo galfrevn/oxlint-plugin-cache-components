@@ -725,5 +725,20 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
 }`,
       errors: [{ messageId: "searchParams", line: 5 }],
     },
+    {
+      name: "draftMode().enable() inside use cache: private",
+      code: `
+import { draftMode } from "next/headers";
+export async function preview() {
+  "use cache: private";
+  (await draftMode()).enable();
+}`,
+      errors: [
+        {
+          messageId: "draftModeMutation",
+          data: { method: "enable", scope: '"use cache: private"', url: USE_CACHE_URL },
+        },
+      ],
+    },
   ],
 });
