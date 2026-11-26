@@ -4,6 +4,7 @@ dist/
 coverage/
 .turbo/
 .corpus/
+scripts/corpus/results/
 
 # Local environment
 .env
