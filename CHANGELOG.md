@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3
+
+### Patch Changes
+
+- 0ef15fb: Accept oxlint 1.63.0 or later as a peer dependency, instead of 1.95.0. CI runs the tests with oxlint 1.63.0, 1.95.0, and the latest version.
+
 ## 0.2.2
 
 ### Patch Changes
