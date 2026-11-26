@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import configs, { all, recommended, strict } from "../src/configs.ts";
+import configs, { all, migration, recommended, strict } from "../src/configs.ts";
 import plugin from "../src/index.ts";
 import { RULES } from "../src/rules/index.ts";
 import { ruleDocsUrl } from "../src/utils/messages.ts";
@@ -17,7 +17,7 @@ describe("plugin", () => {
   it("is named cache-components and exposes every rule", () => {
     expect(plugin.meta).toEqual({ name: "cache-components", version: expect.any(String) });
     expect(Object.keys(plugin.rules).toSorted()).toEqual(RULE_NAMES.toSorted());
-    expect(RULE_NAMES).toHaveLength(9);
+    expect(RULE_NAMES).toHaveLength(13);
   });
 
   it("adds an ESLint create function to every rule", () => {
@@ -44,7 +44,9 @@ describe("plugin", () => {
 
   it.each(RULE_NAMES)("links every message of %s to the docs", (name) => {
     const messages = RULES[name]?.rule.meta?.messages ?? {};
-    const reports = Object.entries(messages).filter(([id]) => !/^(add|use|keep)[A-Z]/.test(id));
+    const reports = Object.entries(messages).filter(
+      ([id]) => !/^(add|use|keep|remove)[A-Z]/.test(id),
+    );
     for (const [id, text] of reports) {
       expect(text, `${name}: ${id}`).toMatch(/See (https:\/\/nextjs\.org\/docs\/\S+|\{\{url\}\})$/);
     }
@@ -66,9 +68,33 @@ describe("presets", () => {
     });
   });
 
-  it("raises every rule to error in strict and all", () => {
-    for (const preset of [strict, all]) {
-      expect(Object.values(preset.rules)).toEqual(RULE_NAMES.map(() => "error"));
+  it("raises the core rules to error and adds the heuristic rules as warnings in strict", () => {
+    expect(strict.rules).toEqual({
+      "cache-components/no-request-api-in-cache": "error",
+      "cache-components/no-cache-api-outside-cache": "error",
+      "cache-components/require-cachelife-when-nested": "error",
+      "cache-components/no-invalid-cache-nesting": "error",
+      "cache-components/valid-invalidation-context": "error",
+      "cache-components/no-promise-args-to-cache": "error",
+      "cache-components/require-revalidate-tag-profile": "error",
+      "cache-components/require-revalidate-path-type": "error",
+      "cache-components/require-auth-before-revalidate": "error",
+      "cache-components/no-introspect-passthrough": "warn",
+      "cache-components/serializable-cache-args": "warn",
+      "cache-components/no-react-cache-across-boundary": "warn",
+    });
+  });
+
+  it("enables only the segment config rule in migration", () => {
+    expect(migration.rules).toEqual({
+      "cache-components/no-legacy-segment-config": ["error", { cacheComponents: true }],
+    });
+  });
+
+  it("enables every rule as an error in all", () => {
+    expect(Object.keys(all.rules)).toEqual(RULE_NAMES.map((name) => `cache-components/${name}`));
+    for (const setting of Object.values(all.rules)) {
+      expect(Array.isArray(setting) ? setting[0] : setting).toBe("error");
     }
   });
 
@@ -87,6 +113,7 @@ describe("presets", () => {
       rules: recommended.rules,
     });
     expect(plugin.configs["flat/strict"].rules).toEqual(strict.rules);
+    expect(plugin.configs["flat/migration"].rules).toEqual(migration.rules);
     expect(plugin.configs["flat/all"].rules).toEqual(all.rules);
   });
 });

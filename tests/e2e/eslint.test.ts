@@ -47,6 +47,11 @@ describe("ESLint compatibility", () => {
   it("exposes plugin metadata", async () => {
     const plugin = await loadBuiltPlugin();
     expect(plugin.meta).toEqual({ name: "cache-components", version: expect.any(String) });
-    expect(Object.keys(plugin.configs)).toEqual(["flat/recommended", "flat/strict", "flat/all"]);
+    expect(Object.keys(plugin.configs)).toEqual([
+      "flat/recommended",
+      "flat/strict",
+      "flat/migration",
+      "flat/all",
+    ]);
   });
 });
