@@ -89,6 +89,32 @@ export function Search({ searchParams }: { searchParams: Promise<{ q?: string }>
   return <Results query={searchParams} />;
 }${RESULTS}`,
     },
+    {
+      name: "a captured value that was awaited",
+      code: `
+import { cookies } from "next/headers";
+export default async function Page() {
+  const store = await cookies();
+  async function Prefs() {
+    "use cache";
+    return <p>{store.get("theme")?.value}</p>;
+  }
+  return <Prefs />;
+}`,
+    },
+    {
+      name: "a local helper that reads cookies only in a branch",
+      code: `
+import { cookies } from "next/headers";
+async function readTheme(fromCookie: boolean) {
+  if (fromCookie) return (await cookies()).get("theme")?.value;
+  return "light";
+}
+async function Header({ theme }: { theme: Promise<string | undefined> }) { "use cache"; return <h1>{await theme}</h1>; }
+export default function Page() {
+  return <Header theme={readTheme(false)} />;
+}`,
+    },
   ],
   invalid: [
     {
@@ -170,6 +196,64 @@ export default function Page() {
 }`,
       errors: [
         { messageId: "promiseArg", data: { arg: "auth()", scope: '"use cache"', fn: "Dashboard" } },
+      ],
+    },
+    {
+      name: "a cached closure that captures a promise from a helper that awaits connection()",
+      code: `
+import { connection } from "next/server";
+async function fetchUncachedData() {
+  await connection();
+  return Math.random();
+}
+export default async function Page() {
+  const uncachedDataPromise = fetchUncachedData();
+  const Foo = async () => {
+    "use cache";
+    return <p>{await uncachedDataPromise}</p>;
+  };
+  return <Foo />;
+}`,
+      errors: [
+        {
+          message:
+            '`uncachedDataPromise` is a Promise of request-time data that "use cache" function `Foo` captures from the enclosing function. Await it outside and pass the resolved value as an argument, or the cache can\'t fill during prerender and the build times out after 50 seconds. See https://nextjs.org/docs/app/api-reference/directives/use-cache',
+          line: 11,
+        },
+      ],
+    },
+    {
+      name: "a cached closure that captures cookies() without await",
+      code: `
+import { cookies } from "next/headers";
+export default async function Page() {
+  const store = cookies();
+  async function Prefs() {
+    "use cache";
+    return <p>{(await store).get("theme")?.value}</p>;
+  }
+  return <Prefs />;
+}`,
+      errors: [
+        { messageId: "capturedPromise", data: { arg: "store", scope: '"use cache"', fn: "Prefs" } },
+      ],
+    },
+    {
+      name: "a call to a local helper that reads headers passed without await",
+      code: `
+import { headers } from "next/headers";
+async function readLocale() {
+  return (await headers()).get("accept-language");
+}
+async function Greeting({ locale }: { locale: Promise<string | null> }) { "use cache"; return <p>{await locale}</p>; }
+export default function Page() {
+  return <Greeting locale={readLocale()} />;
+}`,
+      errors: [
+        {
+          messageId: "promiseArg",
+          data: { arg: "readLocale()", scope: '"use cache"', fn: "Greeting" },
+        },
       ],
     },
   ],

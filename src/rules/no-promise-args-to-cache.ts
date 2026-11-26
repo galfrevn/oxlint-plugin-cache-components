@@ -1,8 +1,15 @@
 import { defineRule } from "@oxlint/plugins";
-import type { Context, Rule } from "@oxlint/plugins";
+import type { Context, ESTree, Rule, Variable } from "@oxlint/plugins";
 
 import type { FileAnalysis, FunctionInfo } from "../utils/analysis.ts";
-import { getStaticPropertyName, isFunctionNode, unwrapExpression } from "../utils/ast.ts";
+import {
+  getStaticPropertyName,
+  isFunctionNode,
+  runsUnconditionally,
+  SKIP,
+  unwrapExpression,
+  walk,
+} from "../utils/ast.ts";
 import type { Node } from "../utils/ast.ts";
 import type { CallSite } from "../utils/call-graph.ts";
 import { isPublicCacheKind } from "../utils/directives.ts";
@@ -20,7 +27,18 @@ import { findDestructuredBinding } from "../utils/props.ts";
 
 const RULE_NAME = "no-promise-args-to-cache";
 const REQUEST_PROMISE_APIS: ReadonlySet<string> = new Set(["cookies", "draftMode", "headers"]);
-const REQUEST_PROMISE_MARKERS: readonly string[] = ["Params", "params", "next/headers"];
+const HELPER_REQUEST_APIS: ReadonlySet<string> = new Set([
+  "connection",
+  "cookies",
+  "draftMode",
+  "headers",
+]);
+const REQUEST_PROMISE_MARKERS: readonly string[] = [
+  "Params",
+  "params",
+  "next/headers",
+  "next/server",
+];
 
 export const noPromiseArgsToCache: Rule = defineRule({
   meta: {
@@ -33,6 +51,7 @@ export const noPromiseArgsToCache: Rule = defineRule({
     },
     messages: {
       promiseArg: `\`{{arg}}\` is a Promise of request-time data passed to {{scope}} \`{{fn}}\`. Await it outside and pass the resolved values, or the cache can't fill during prerender and the build times out after 50 seconds. See ${USE_CACHE_URL}`,
+      capturedPromise: `\`{{arg}}\` is a Promise of request-time data that {{scope}} function \`{{fn}}\` captures from the enclosing function. Await it outside and pass the resolved value as an argument, or the cache can't fill during prerender and the build times out after 50 seconds. See ${USE_CACHE_URL}`,
     },
     schema: [
       {
@@ -67,6 +86,7 @@ export const noPromiseArgsToCache: Rule = defineRule({
             for (const site of analysis.callGraph.callersOf(unit.node)) {
               checkSite(context, analysis, unit, site, props);
             }
+            checkCapturedPromises(context, analysis, unit);
           }
         }
       },
@@ -88,6 +108,36 @@ function checkSite(
         messageId: "promiseArg",
         data: {
           arg: context.sourceCode.getText(argument),
+          scope: cached.cacheScope ? scopeLabel(cached.cacheScope.kind) : '"use cache"',
+          fn: cached.name,
+        },
+      });
+    }
+  }
+}
+
+function checkCapturedPromises(
+  context: Context,
+  analysis: FileAnalysis,
+  cached: FunctionInfo,
+): void {
+  const reported = new Set<Variable>();
+  for (const reference of context.sourceCode.getScope(cached.node).through) {
+    const variable = reference.resolved;
+    if (!variable || reported.has(variable) || !reference.isRead()) {
+      continue;
+    }
+    const definition = variable.defs[0];
+    const declarator = definition?.type === "Variable" ? definition.node : null;
+    const init = declarator?.type === "VariableDeclarator" ? declarator.init : null;
+    const call = init ? unwrapExpression(init) : null;
+    if (call?.type === "CallExpression" && isRequestPromiseCall(analysis, call)) {
+      reported.add(variable);
+      context.report({
+        node: reference.identifier,
+        messageId: "capturedPromise",
+        data: {
+          arg: variable.name,
           scope: cached.cacheScope ? scopeLabel(cached.cacheScope.kind) : '"use cache"',
           fn: cached.name,
         },
@@ -120,7 +170,7 @@ function isRequestPromise(
 ): boolean {
   const target = unwrapExpression(argument);
   if (target.type === "CallExpression") {
-    return isRequestPromiseCall(analysis, target.callee);
+    return isRequestPromiseCall(analysis, target);
   }
   if (target.type === "MemberExpression") {
     const property = getStaticPropertyName(target);
@@ -147,14 +197,42 @@ function isRequestPromise(
     return false;
   }
   const init = unwrapExpression(declarator.init);
-  return init.type === "CallExpression" && isRequestPromiseCall(analysis, init.callee);
+  return init.type === "CallExpression" && isRequestPromiseCall(analysis, init);
 }
 
-function isRequestPromiseCall(analysis: FileAnalysis, callee: Node): boolean {
-  const api = analysis.bindings.resolve(callee);
-  return (
+function isRequestPromiseCall(analysis: FileAnalysis, call: ESTree.CallExpression): boolean {
+  const api = analysis.bindings.resolve(call.callee);
+  if (
     (api !== null && REQUEST_PROMISE_APIS.has(api)) ||
-    analysis.bindings.resolveRequestApi(callee) !== null
+    analysis.bindings.resolveRequestApi(call.callee)
+  ) {
+    return true;
+  }
+  const callee = unwrapExpression(call.callee);
+  const helper = callee.type === "Identifier" ? analysis.resolveFunction(callee) : null;
+  return !!helper?.node.async && readsRequestApi(analysis, helper);
+}
+
+function readsRequestApi(analysis: FileAnalysis, helper: FunctionInfo): boolean {
+  const keys = analysis.sourceCode.visitorKeys;
+  let found = false;
+  walk(helper.node, keys, (node) => {
+    if (found || (node !== helper.node && isFunctionNode(node))) {
+      return SKIP;
+    }
+    if (node.type === "CallExpression" && isHelperRequestApi(analysis, node)) {
+      found = runsUnconditionally(node, helper.node, keys);
+    }
+    return undefined;
+  });
+  return found;
+}
+
+function isHelperRequestApi(analysis: FileAnalysis, call: ESTree.CallExpression): boolean {
+  const api = analysis.bindings.resolve(call.callee);
+  return (
+    (api !== null && HELPER_REQUEST_APIS.has(api)) ||
+    analysis.bindings.resolveRequestApi(call.callee) !== null
   );
 }
 

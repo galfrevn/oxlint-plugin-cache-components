@@ -15,6 +15,8 @@ The rule checks every call and every JSX element in the file that targets a `"us
 - The `searchParams` prop of a page, destructured or read as `props.searchParams`, without `await`.
 - `cookies()`, `headers()`, or `draftMode()` without `await`, or a variable bound to one of those calls without `await`.
 - A call to a function listed in `requestApis`, without `await`.
+- A call, without `await`, to an async function in the same file that always reads `cookies()`, `headers()`, `connection()`, or `draftMode()`.
+- A variable bound to one of those promises that a cached function declared inside the caller uses. Next.js passes captured variables to the cached function like arguments.
 - The `params` prop of a segment, when `checkParams` is `true`.
 
 ## Examples

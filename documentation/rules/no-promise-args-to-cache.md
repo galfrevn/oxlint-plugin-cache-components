@@ -24,6 +24,8 @@ This error is expensive. The code gives no clear message, only a 50-second wait 
    - With `checkParams: true`, also the segment's `params` without `await`.
    - An identifier bound to `connection()` is ignored. `no-request-api-in-cache` already covers it when it is used inside the cache.
 4. If the argument is wrapped in `await`, or destructured before it is passed, it is valid.
+5. A call, without `await`, to a local async function that reads `cookies()`, `headers()`, `connection()`, `draftMode()`, or a `requestApis` entry unconditionally (as in `no-request-api-in-cache`) is also a request promise.
+6. **Captured promises** (`capturedPromise`): a variable that a cached function reads from an enclosing function, and that is bound to a request promise, is reported at the read. Next.js serializes captured variables as bound arguments (`test/e2e/app-dir/use-cache-hanging-inputs`, fixture `bound-args`).
 
 ## Examples
 
@@ -83,6 +85,8 @@ Low with `searchParams`, `cookies()`, and `headers()`. With `params` the result 
 ## Messages
 
 - `promiseArg`: ``` `{{arg}}` is a Promise of request-time data passed to {{scope}} `{{fn}}`. Await it outside and pass the resolved values, or the cache can't fill during prerender and the build times out after 50 seconds. See https://nextjs.org/docs/app/api-reference/directives/use-cache ```
+
+- `capturedPromise`: ``` `{{arg}}` is a Promise of request-time data that {{scope}} function `{{fn}}` captures from the enclosing function. Await it outside and pass the resolved value as an argument, or the cache can't fill during prerender and the build times out after 50 seconds. See https://nextjs.org/docs/app/api-reference/directives/use-cache ```
 
 ## Tests
 
