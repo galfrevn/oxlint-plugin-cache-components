@@ -584,5 +584,15 @@ export async function getProfile() {
         },
       ],
     },
+    {
+      name: "connection through a namespace import inside a private cache",
+      code: `
+import * as server from "next/server";
+export async function getStats() {
+  "use cache: private";
+  await server.connection();
+}`,
+      errors: [{ messageId: "connectionPrivate" }],
+    },
   ],
 });

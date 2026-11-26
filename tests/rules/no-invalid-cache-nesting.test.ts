@@ -156,5 +156,38 @@ export async function getDashboard() { "use cache: private"; return getCatalog()
         },
       ],
     },
+    {
+      name: "a function referenced by unstable_cache",
+      code: `
+import { unstable_cache } from "next/cache";
+async function getPrefs() { "use cache: private"; return 1; }
+async function load() { return getPrefs(); }
+export const getHome = unstable_cache(load, ["home"]);`,
+      errors: [{ messageId: "privateInUnstableCache", data: { inner: "getPrefs" } }],
+    },
+    {
+      name: "private reached from unstable_generateParamMatching",
+      filename: "app/[slug]/page.tsx",
+      code: `
+async function getPrefs() { "use cache: private"; return 1; }
+export async function unstable_generateParamMatching() { await getPrefs(); return []; }`,
+      errors: [
+        {
+          messageId: "privateInBuildTime",
+          data: { inner: "getPrefs", generator: "unstable_generateParamMatching" },
+        },
+      ],
+    },
+    {
+      name: "remote inside private through a helper",
+      options: [{ checkRemoteInPrivate: true }],
+      code: `
+async function getCatalog() { "use cache: remote"; return []; }
+async function load() { return getCatalog(); }
+export async function getDashboard() { "use cache: private"; return load(); }`,
+      errors: [
+        { messageId: "remoteInPrivate", data: { inner: "getCatalog", outer: "getDashboard" } },
+      ],
+    },
   ],
 });

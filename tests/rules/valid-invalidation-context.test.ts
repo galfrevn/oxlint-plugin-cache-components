@@ -380,5 +380,21 @@ export default async function Page() { purge(); return <List posts={await getPos
         },
       ],
     },
+    {
+      name: "updateTag inside unstable_generateParamMatching",
+      filename: "app/[slug]/page.tsx",
+      code: `
+import { updateTag } from "next/cache";
+export async function unstable_generateParamMatching() {
+  updateTag("params");
+  return [];
+}`,
+      errors: [
+        {
+          messageId: "inBuildTimeGenerator",
+          data: { api: "updateTag", generator: "unstable_generateParamMatching" },
+        },
+      ],
+    },
   ],
 });

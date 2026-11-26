@@ -299,5 +299,13 @@ export const dashboard = async () => { "use cache: remote"; return ticker(); };`
         },
       ],
     },
+    {
+      name: "revalidate: 0 takes priority over a short expire",
+      code: `
+import { cacheLife } from "next/cache";
+async function live() { "use cache"; cacheLife({ revalidate: 0, expire: 60 }); return 1; }
+export async function dashboard() { "use cache"; return live(); }`,
+      errors: [{ messageId: "zeroRevalidate", data: { outer: "dashboard", inner: "live" } }],
+    },
   ],
 });

@@ -283,5 +283,12 @@ export async function POST() { tag(); return Response.json({}); }
 export async function PUT() { tag(); return Response.json({}); }`,
       errors: [{ messageId: "outside", suggestions: [] }],
     },
+    {
+      name: "renamed cacheTag at module scope",
+      code: `
+import { cacheTag as tag } from "next/cache";
+tag("posts");`,
+      errors: [{ messageId: "moduleScope", data: { api: "cacheTag", url: TAG_URL } }],
+    },
   ],
 });
