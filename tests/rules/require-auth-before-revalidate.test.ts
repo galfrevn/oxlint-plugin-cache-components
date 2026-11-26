@@ -321,6 +321,60 @@ export async function save() {
   updateTag("posts");
 }`,
     },
+    {
+      name: "an auth check before a direct invalidation",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+import { requireSession } from "#source/lib/authentication/session.ts";
+export async function direct() {
+  await requireSession();
+  updateTag("jobs");
+}`,
+    },
+    {
+      name: "an auth check before an invalidation in a promise callback",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+import { requireSession } from "#source/lib/authentication/session.ts";
+export async function callback() {
+  await requireSession();
+  await Promise.resolve().then(() => updateTag("jobs"));
+}`,
+    },
+    {
+      name: "an auth check before an invalidation in nested Effect callbacks",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { Effect } from "effect";
+import { updateTag } from "next/cache";
+import { requireSession } from "#source/lib/authentication/session.ts";
+export async function effect() {
+  await requireSession();
+  await Effect.runPromise(
+    Effect.succeed(1).pipe(Effect.tap(() => Effect.sync(() => updateTag("jobs")))),
+  );
+}`,
+    },
+    {
+      name: "an auth check inside the callback before the invalidation",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+export async function publishAll(ids: string[]) {
+  await Promise.all(
+    ids.map(async (id) => {
+      await requireSession();
+      updateTag(id);
+    }),
+  );
+}`,
+    },
   ],
   invalid: [
     {
@@ -354,6 +408,31 @@ export async function deletePost(id: string) {
           line: 6,
         },
       ],
+    },
+    {
+      name: "an invalidation in a callback created before the auth check",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+export async function save() {
+  const pending = Promise.resolve().then(() => updateTag("jobs"));
+  await requireSession();
+  await pending;
+}`,
+      errors: [{ messageId: "missingAuth", line: 5 }],
+    },
+    {
+      name: "an invalidation in a callback after an auth check on one branch",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+export async function save(admin: boolean) {
+  if (admin) await requireSession();
+  await Promise.resolve().then(() => updateTag("jobs"));
+}`,
+      errors: [{ messageId: "missingAuth", line: 6 }],
     },
     {
       name: "an auth check between two invalidations",
