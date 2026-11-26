@@ -1,6 +1,6 @@
 import type { ESTree, SourceCode, Variable } from "@oxlint/plugins";
 
-import { getStaticPropertyName, unwrapExpression } from "./ast.ts";
+import { getStaticPropertyName, skipTransparentParents, unwrapExpression } from "./ast.ts";
 import type { Node } from "./ast.ts";
 
 export type NextApi =
@@ -40,6 +40,8 @@ export interface NextBindings {
   findNamedImport(module: NextModule, exported: string): NamedImport | null;
   findImportDeclaration(module: NextModule): ESTree.ImportDeclaration | null;
 }
+
+const MAX_ALIAS_DEPTH = 4;
 
 const MODULE_EXPORTS: Readonly<Record<NextModule, Readonly<Record<string, NextApi>>>> = {
   "next/cache": {
@@ -110,17 +112,17 @@ export function createNextBindings(
         const imported = getImportedName(specifier);
         const api = exports?.[imported];
         if (api) {
-          trackReferences(variable, direct, api);
+          trackReferences(sourceCode, variable, direct, api);
           namedImports.set(`${source}#${imported}`, {
             declaration: statement,
             local: specifier.local.name,
           });
         }
         if (requestApis.some((matcher) => matchesRequestApi(matcher, source, imported))) {
-          trackReferences(variable, requestApiReferences, { name: imported });
+          trackReferences(sourceCode, variable, requestApiReferences, { name: imported });
         }
       } else if (exports) {
-        trackNamespaceReferences(variable, members, exports);
+        trackNamespaceReferences(sourceCode, variable, members, direct, exports);
       }
     }
   }
@@ -160,15 +162,27 @@ function matchesRequestApi(matcher: RequestApiMatcher, source: string, imported:
   return matcher.name === imported && (matcher.module === null || matcher.module === source);
 }
 
-function trackReferences<T>(variable: Variable, target: Map<Node, T>, value: T): void {
+function trackReferences<T>(
+  sourceCode: SourceCode,
+  variable: Variable,
+  target: Map<Node, T>,
+  value: T,
+  depth = 0,
+): void {
   for (const reference of variable.references) {
+    if (reference.init) {
+      continue;
+    }
     target.set(reference.identifier, value);
+    trackAlias(sourceCode, reference.identifier, target, value, depth);
   }
 }
 
 function trackNamespaceReferences(
+  sourceCode: SourceCode,
   variable: Variable,
   target: Map<Node, NextApi>,
+  aliases: Map<Node, NextApi>,
   exports: Readonly<Record<string, NextApi>>,
 ): void {
   for (const reference of variable.references) {
@@ -180,6 +194,35 @@ function trackNamespaceReferences(
     const api = property === null ? undefined : exports[property];
     if (api) {
       target.set(parent, api);
+      trackAlias(sourceCode, parent, aliases, api, 0);
     }
   }
+}
+
+function trackAlias<T>(
+  sourceCode: SourceCode,
+  node: Node,
+  target: Map<Node, T>,
+  value: T,
+  depth: number,
+): void {
+  const alias = depth < MAX_ALIAS_DEPTH ? findConstAlias(sourceCode, node) : null;
+  if (alias) {
+    trackReferences(sourceCode, alias, target, value, depth + 1);
+  }
+}
+
+function findConstAlias(sourceCode: SourceCode, node: Node): Variable | null {
+  const outer = skipTransparentParents(node);
+  const declarator = outer.parent;
+  if (
+    declarator?.type !== "VariableDeclarator" ||
+    declarator.init !== outer ||
+    declarator.id.type !== "Identifier" ||
+    declarator.parent.type !== "VariableDeclaration" ||
+    declarator.parent.kind !== "const"
+  ) {
+    return null;
+  }
+  return sourceCode.getDeclaredVariables(declarator)[0] ?? null;
 }

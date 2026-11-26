@@ -127,7 +127,7 @@ The rules in `recommended` and `migration` map to an error or warning that Next.
 
 ### Analysis boundaries
 
-The rules analyze one file at a time. They resolve Next.js APIs by following the import binding from `next/headers`, `next/server`, `next/cache`, or `react`, so renamed imports and namespace imports are recognized and a local variable with the same name is not. They follow calls and JSX between functions in the same file. A helper imported from another file is not followed, and a function whose context the file cannot prove, such as an exported helper with no callers in the file, is not reported. The rules do not use type information.
+The rules analyze one file at a time. They resolve Next.js APIs by following the import binding from `next/headers`, `next/server`, `next/cache`, or `react`, so renamed imports, namespace imports, and `const` aliases such as `const read = cookies` are recognized, and a local variable with the same name is not. They follow calls and JSX between functions in the same file. A helper imported from another file is not followed, and a function whose context the file cannot prove, such as an exported helper with no callers in the file, is not reported. The rules do not use type information.
 
 Each rule is confirmed against a real Next.js 16.4.6 app with `next build` and `next start`: see [`conformance/RESULTS.md`](conformance/RESULTS.md). The false-positive review on 61 public repositories that use Cache Components is in [`scripts/corpus/triage.md`](scripts/corpus/triage.md).
 

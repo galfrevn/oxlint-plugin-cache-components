@@ -97,6 +97,26 @@ tester.run("next-bindings", createProbe(describeCalls([])), {
     probeCase(`import { cookies } from "some-other-package";\ncookies();`, ["cookies=none"], {
       name: "same name from another module",
     }),
+    probeCase(
+      `import { cookies } from "next/headers";\nconst readCookies = cookies;\nconst again = readCookies as typeof cookies;\nreadCookies(); again();`,
+      ["readCookies=cookies", "again=cookies"],
+      { name: "const aliases" },
+    ),
+    probeCase(
+      `import * as h from "next/headers";\nconst readHeaders = h.headers;\nreadHeaders();`,
+      ["readHeaders=headers"],
+      { name: "const alias of a namespace member" },
+    ),
+    probeCase(
+      `import { cookies } from "next/headers";\nlet read = cookies;\nvar other = cookies;\nread(); other();`,
+      ["read=none", "other=none"],
+      { name: "let and var aliases do not resolve" },
+    ),
+    probeCase(
+      `import { cookies } from "next/headers";\nconst a = cookies;\nconst b = a;\nconst c = b;\nconst d = c;\nconst e = d;\nconst f = e;\nd(); f();`,
+      ["d=cookies", "f=none"],
+      { name: "alias chains stop after four steps" },
+    ),
   ],
 });
 
@@ -111,6 +131,13 @@ tester.run("next-bindings requestApis", createProbe(describeCalls(["auth"])), {
     probeCase(`function auth() {}\nauth();`, ["auth=none"], {
       name: "local declarations are not request APIs",
     }),
+    probeCase(
+      `import { auth } from "@/auth";\nconst getSession = auth;\ngetSession();`,
+      ["getSession=auth"],
+      {
+        name: "const aliases of request APIs",
+      },
+    ),
   ],
 });
 

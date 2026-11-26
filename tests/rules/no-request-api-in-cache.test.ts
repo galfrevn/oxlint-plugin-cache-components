@@ -235,6 +235,23 @@ export async function Header() {
       ],
     },
     {
+      name: "a const alias of cookies in use cache",
+      code: `
+import { cookies } from "next/headers";
+const readCookies = cookies;
+export async function Header() {
+  "use cache";
+  const theme = (await readCookies()).get("theme");
+  return <header data-theme={theme?.value} />;
+}`,
+      errors: [
+        {
+          message: `\`cookies()\` can't be read inside "use cache". Read it outside the cached function and pass what you need as an argument. See ${USE_CACHE_URL}`,
+          line: 6,
+        },
+      ],
+    },
+    {
       name: "headers in use cache: remote",
       code: `
 import { headers } from "next/headers";

@@ -21,7 +21,7 @@ The rule reports:
 
 It also follows helpers in the same file. When a cached function calls a helper that reads `cookies()`, the rule reports the call site inside the cached function.
 
-APIs are matched by their import from `next/headers` or `next/server`. Renamed and namespace imports are recognized. A local variable with the same name is not.
+APIs are matched by their import from `next/headers` or `next/server`. Renamed imports, namespace imports, and `const` aliases such as `const read = cookies` are recognized. A local variable with the same name is not.
 
 ## Examples
 
