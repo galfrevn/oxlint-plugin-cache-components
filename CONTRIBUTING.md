@@ -1,10 +1,10 @@
 # Contributing
 
-The project is in the design phase. The most useful contributions now are comments on the design and proposed changes to the decision records.
+Contributions are welcome: bug reports with a reproduction, false-positive reports from real code, rule proposals backed by Next.js behavior, and fixes.
 
-## Design phase
+## Design changes
 
-- Open an issue to discuss the design. If the repository has Discussions enabled, a discussion works too.
+- Open an issue to discuss a change to the design. If the repository has Discussions enabled, a discussion works too.
 - Propose a change to an architecture decision in an issue first. Then open a pull request with the change.
 - Decisions live in [`documentation/decisions.md`](documentation/decisions.md). Until the first release, a change to a decision updates its record in place. After the first release, a new record supersedes the old one.
 - Documentation changes follow [Writing documentation](#writing-documentation).
@@ -15,20 +15,21 @@ Open an issue before you start non-trivial work. Agree on the scope first, so th
 
 ## Development setup
 
-The setup is available once the code lands. The commands below are planned in [`AGENTS.md`](AGENTS.md) and [`documentation/architecture.md`](documentation/architecture.md#testing). They do not run yet.
+The repository pins Node.js 24 in `.node-version` and pnpm 11.21.0 in `packageManager`. Development needs Node.js 22.18 or later, because the tooling and `oxlint.config.ts` need it.
 
 ```bash
 pnpm install
-pnpm test          # Vitest and RuleTester
+pnpm check         # oxfmt, oxlint, TypeScript, and every test
+pnpm test          # Vitest: RuleTester suites and end-to-end tests
 pnpm lint          # oxlint over this repository
 pnpm typecheck
 pnpm build         # tsdown, ESM and type declarations in dist/
 pnpm corpus        # runs the plugin over the corpus
 pnpm next-sync     # compares Next.js error messages with the snapshot
-pnpm conformance   # builds and starts the conformance app, then requests each route
+pnpm smoke         # runs the built plugin with the oxlint CLI
 ```
 
-The Node.js and pnpm versions will be pinned when the code lands.
+The conformance app (`pnpm conformance`) is planned in task T4.1 of the [roadmap](documentation/roadmap.md).
 
 ## Proposing a new rule
 
@@ -138,40 +139,8 @@ These words usually signal filler or marketing. Replace them with the concrete c
 
 ## Reporting a vulnerability
 
-### Supported versions
-
-No version is released yet, so no version is supported. After the first release, the latest minor version receives security fixes.
-
-### How to report
-
-Report vulnerabilities privately through GitHub private vulnerability reporting:
-https://github.com/galfrevn/oxlint-plugin-cache-components/security/advisories/new
-
-Do not open a public issue for a vulnerability.
-
-Include the following in your report:
-
-- The affected version, or the commit hash if no version is released.
-- The versions of oxlint and Next.js you used, if the report depends on them.
-- The steps to reproduce the problem, with the smallest code sample that triggers it.
-- The impact: what an attacker can do, or what a user loses.
-- A suggested fix, if you have one.
-
-The maintainer aims to acknowledge reports within 7 days.
-
-### Scope
-
-In scope:
-
-- The plugin code in this repository.
-- The published npm package, including supply-chain issues such as a compromised dependency or a release that differs from the repository.
-
-The plugin is a set of lint rules. It is not a security control, and it does not check the security of an application (see the non-goals in [`documentation/spec.md`](documentation/spec.md)). A rule that misses a problem is a rule gap, and a regular issue is the right place for it. A flaw that compromises users of the plugin or its npm package is a vulnerability, and it goes through private reporting.
+Report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md). Do not open a public issue for a vulnerability.
 
 ## Code of conduct
 
-This project adopts the [Contributor Covenant](https://www.contributor-covenant.org/), version 2.1. The full text is at https://www.contributor-covenant.org/version/2/1/code_of_conduct/
-
-### Reporting
-
-Contact the maintainer, @galfrevn. A private contact address will be added before the first release.
+This project adopts the Contributor Covenant, version 2.1. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

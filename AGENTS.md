@@ -22,17 +22,19 @@
 - **Per-file analysis:** do not resolve imports across files (that is v2). Report only what can be proven within the file. When in doubt, do not report (ADR-005).
 - **Bindings, not names:** detect `cookies`, `cacheTag`, and the rest by following the import from `next/headers`, `next/cache`, or `next/server` with scope analysis. A bare name is never enough.
 - **Messages for agents:** say what is wrong, why (one sentence), how to fix it, and a Next.js docs URL. When the error is the one Next.js throws, copy its wording, with MIT attribution.
-- **Tests:** `RuleTester` from `oxlint/plugins-dev` with Vitest. Each invalid example in a rule spec is a test.
+- **Tests:** `RuleTester` from `oxlint/plugins-dev` with Vitest. Each invalid example in a rule spec is a test. `tests/plugin.test.ts` requires every messageId in its rule's tests.
+- **Code style:** no comments in source, tests, or scripts. Names and tests carry the intent.
 - **Publishing:** do not publish to npm, open issues on other projects, or post anywhere without explicit approval from the maintainer.
 
-## Commands (planned, created in milestone M0)
+## Commands
 
 ```bash
 pnpm install
-pnpm test          # Vitest + RuleTester
+pnpm check         # oxfmt + oxlint + typecheck + tests
+pnpm test          # Vitest + RuleTester, plus end-to-end tests with the oxlint CLI and ESLint
 pnpm lint          # oxlint over this repo
 pnpm typecheck
-pnpm build         # tsdown -> dist/ (ESM + d.ts)
-pnpm corpus        # runs the plugin over the corpus
+pnpm build         # tsdown -> dist/ (ESM + d.ts), checked with publint and Are the Types Wrong
+pnpm corpus        # runs the plugin over the corpus; results stay local
 pnpm next-sync     # compares Next.js canary error messages with the snapshot
 ```
