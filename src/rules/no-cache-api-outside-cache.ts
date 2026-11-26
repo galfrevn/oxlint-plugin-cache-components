@@ -55,7 +55,7 @@ export const noCacheApiOutsideCache: Rule = defineRule({
     return {
       before() {
         calls = [];
-        return textMentions(context.sourceCode.text, ["next/cache"]);
+        return textMentions(context.sourceCode.text, ["next/cache"], ["cacheTag", "cacheLife"]);
       },
       CallExpression(node) {
         calls.push(node);

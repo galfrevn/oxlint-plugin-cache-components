@@ -12,6 +12,7 @@ import {
   scopeLabel,
   USE_CACHE_PRIVATE_URL,
 } from "../utils/messages.ts";
+import { requestApiNames } from "../utils/next-bindings.ts";
 import {
   analyze,
   getBoolean,
@@ -128,8 +129,10 @@ function mayApply(context: Context): boolean {
     return false;
   }
   const requestApis = getStringList(context, getRuleOptions(context), "requestApis") ?? [];
-  const names = requestApis.map((entry) => entry.slice(entry.lastIndexOf(":") + 1));
-  return textMentions(text, [...REQUEST_MARKERS, ...names]) || ROUTE_FILE.test(context.filename);
+  return (
+    textMentions(text, [...REQUEST_MARKERS, ...requestApiNames(requestApis)]) ||
+    ROUTE_FILE.test(context.filename)
+  );
 }
 
 function toRequestUse(analysis: FileAnalysis, call: ESTree.CallExpression): RequestUse | null {

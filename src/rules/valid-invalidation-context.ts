@@ -65,7 +65,11 @@ export const validInvalidationContext: Rule = defineRule({
     return {
       before() {
         calls = [];
-        return textMentions(context.sourceCode.text, ["next/cache"]);
+        return textMentions(
+          context.sourceCode.text,
+          ["next/cache"],
+          ["refresh", "revalidatePath", "revalidateTag", "updateTag"],
+        );
       },
       CallExpression(node) {
         calls.push(node);

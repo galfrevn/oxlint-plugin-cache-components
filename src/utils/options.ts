@@ -72,8 +72,29 @@ export function analyze(context: Context, options: RuleOptions): FileAnalysis {
   );
 }
 
-export function textMentions(text: string, needles: readonly string[]): boolean {
-  return needles.some((needle) => text.includes(needle));
+const RELEVANCE_MARKERS: readonly string[] = ["next/", "use cache"];
+
+let mentionText = "";
+let mentionCache = new Map<string, boolean>();
+
+export function textMentions(text: string, ...groups: readonly (readonly string[])[]): boolean {
+  if (text !== mentionText) {
+    mentionText = text;
+    mentionCache = new Map();
+  }
+  if (!RELEVANCE_MARKERS.some((marker) => mentions(text, marker))) {
+    return false;
+  }
+  return groups.every((needles) => needles.some((needle) => mentions(text, needle)));
+}
+
+function mentions(text: string, needle: string): boolean {
+  let found = mentionCache.get(needle);
+  if (found === undefined) {
+    found = text.includes(needle);
+    mentionCache.set(needle, found);
+  }
+  return found;
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {

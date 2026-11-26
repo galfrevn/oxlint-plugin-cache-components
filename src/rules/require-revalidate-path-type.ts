@@ -34,7 +34,7 @@ export const requireRevalidatePathType: Rule = defineRule({
     return {
       before() {
         calls = [];
-        return textMentions(context.sourceCode.text, ["revalidatePath"]);
+        return textMentions(context.sourceCode.text, ["next/cache"], ["revalidatePath"]);
       },
       CallExpression(node) {
         calls.push(node);

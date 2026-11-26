@@ -32,7 +32,7 @@ export const requireRevalidateTagProfile: Rule = defineRule({
     return {
       before() {
         calls = [];
-        return textMentions(context.sourceCode.text, ["revalidateTag"]);
+        return textMentions(context.sourceCode.text, ["next/cache"], ["revalidateTag"]);
       },
       CallExpression(node) {
         calls.push(node);

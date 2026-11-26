@@ -7,10 +7,12 @@ import type { Node } from "../utils/ast.ts";
 import type { CallSite } from "../utils/call-graph.ts";
 import { isPublicCacheKind } from "../utils/directives.ts";
 import { ruleDocsUrl, scopeLabel, USE_CACHE_URL } from "../utils/messages.ts";
+import { requestApiNames } from "../utils/next-bindings.ts";
 import {
   analyze,
   getBoolean,
   getRuleOptions,
+  getStringList,
   STRING_LIST_SCHEMA,
   textMentions,
 } from "../utils/options.ts";
@@ -18,6 +20,7 @@ import { findDestructuredBinding } from "../utils/props.ts";
 
 const RULE_NAME = "no-promise-args-to-cache";
 const REQUEST_PROMISE_APIS: ReadonlySet<string> = new Set(["cookies", "draftMode", "headers"]);
+const REQUEST_PROMISE_MARKERS: readonly string[] = ["Params", "params", "next/headers"];
 
 export const noPromiseArgsToCache: Rule = defineRule({
   meta: {
@@ -46,7 +49,12 @@ export const noPromiseArgsToCache: Rule = defineRule({
   createOnce(context) {
     return {
       before() {
-        return textMentions(context.sourceCode.text, ["use cache"]);
+        const requestApis = getStringList(context, getRuleOptions(context), "requestApis") ?? [];
+        return textMentions(
+          context.sourceCode.text,
+          ["use cache"],
+          [...REQUEST_PROMISE_MARKERS, ...requestApiNames(requestApis)],
+        );
       },
       "Program:exit"() {
         const options = getRuleOptions(context);

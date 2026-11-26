@@ -58,7 +58,7 @@ export const requireCacheLifeWhenNested: Rule = defineRule({
     return {
       before() {
         calls = [];
-        return textMentions(context.sourceCode.text, ["cacheLife"]);
+        return textMentions(context.sourceCode.text, ["cacheLife"], ["use cache"]);
       },
       CallExpression(node) {
         calls.push(node);

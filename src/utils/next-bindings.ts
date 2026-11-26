@@ -76,6 +76,10 @@ export function parseRequestApis(entries: readonly string[]): RequestApiMatcher[
   });
 }
 
+export function requestApiNames(entries: readonly string[]): string[] {
+  return parseRequestApis(entries).map((matcher) => matcher.name);
+}
+
 export function createNextBindings(
   sourceCode: SourceCode,
   requestApis: readonly RequestApiMatcher[],
