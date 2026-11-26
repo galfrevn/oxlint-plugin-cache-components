@@ -27,9 +27,8 @@ pnpm build         # tsdown, ESM and type declarations in dist/
 pnpm corpus        # runs the plugin over the corpus
 pnpm next-sync     # compares Next.js error messages with the snapshot
 pnpm smoke         # runs the built plugin with the oxlint CLI
+pnpm conformance   # builds each case with Next.js and checks the error and the rule
 ```
-
-The conformance app (`pnpm conformance`) is planned in task T4.1 of the [roadmap](documentation/roadmap.md).
 
 ## Proposing a new rule
 
@@ -67,7 +66,10 @@ Releases go through GitHub Actions, and only the maintainer can approve one.
 2. Merging that pull request leaves a version in `package.json` that is not on npm yet. The `publish` job then waits for approval in the `npm` environment.
 3. After approval, the job runs `pnpm check`, publishes with provenance through npm trusted publishing (OIDC), and creates the git tag and the GitHub release.
 
-Setup for the maintainer: on npmjs.com, add a trusted publisher for this repository with the workflow `release.yml` and the environment `npm`. npm only allows that for an existing package, so the first version needs an `NPM_TOKEN` secret in the `npm` environment. Remove the secret once trusted publishing is configured.
+Setup for the maintainer:
+
+1. The first version needs a token, because npm only allows trusted publishing for an existing package. On npmjs.com, create a granular access token with read and write access to packages, then store it in the `npm` environment with `gh secret set NPM_TOKEN --env npm`, and approve the pending `Release` run.
+2. After the first version is on npm, add a trusted publisher in the package settings on npmjs.com: this repository, the workflow `release.yml`, and the environment `npm`. Then delete the token with `gh secret delete NPM_TOKEN --env npm`. Later releases authenticate with OIDC.
 
 ## Pull requests
 

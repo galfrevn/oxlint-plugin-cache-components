@@ -71,11 +71,17 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
-      - env:
+      - name: Check npm credentials
+        env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
+          name=$(node -p "require('./package.json').name")
           if [ -n "$NPM_TOKEN" ]; then
             echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "$HOME/.npmrc"
+            npm whoami
+          elif ! npm view "$name" version > /dev/null 2>&1; then
+            echo "::error::$name is not on npm yet. Trusted publishing only works for an existing package, so the first version needs an NPM_TOKEN secret in the npm environment."
+            exit 1
           fi
       - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51
         with:
