@@ -3,9 +3,7 @@ import type { ESTree, Rule } from "@oxlint/plugins";
 
 import type { FileAnalysis, FunctionInfo } from "../utils/analysis.ts";
 import {
-  contains,
   getMemberPath,
-  getNearestStatement,
   getStaticPropertyName,
   getStringValue,
   isAwaited,
@@ -15,6 +13,8 @@ import {
   walk,
 } from "../utils/ast.ts";
 import type { Node, VisitorKeys } from "../utils/ast.ts";
+import { createCodePathTracker } from "../utils/code-paths.ts";
+import type { CodePathTracker } from "../utils/code-paths.ts";
 import { DATA_SECURITY_URL, ruleDocsUrl } from "../utils/messages.ts";
 import type { NextApi } from "../utils/next-bindings.ts";
 import {
@@ -117,10 +117,13 @@ export const requireAuthBeforeRevalidate: Rule = defineRule({
   },
   createOnce(context) {
     let calls: ESTree.CallExpression[] = [];
+    const codePaths = createCodePathTracker();
 
     return {
+      ...codePaths.visitors,
       before() {
         calls = [];
+        codePaths.reset();
         return textMentions(
           context.sourceCode.text,
           ["next/cache"],
@@ -128,7 +131,11 @@ export const requireAuthBeforeRevalidate: Rule = defineRule({
         );
       },
       CallExpression(node) {
+        codePaths.record(node);
         calls.push(node);
+      },
+      BinaryExpression(node) {
+        codePaths.record(node);
       },
       "Program:exit"() {
         const options = getRuleOptions(context);
@@ -149,7 +156,11 @@ export const requireAuthBeforeRevalidate: Rule = defineRule({
         for (const call of calls) {
           const api = analysis.bindings.resolve(call.callee);
           const unit = api && INVALIDATION_APIS.has(api) ? analysis.unitAt(call) : null;
-          if (unit && !reported.has(unit) && isUnprotected(analysis, unit, call, authOptions)) {
+          if (
+            unit &&
+            !reported.has(unit) &&
+            isUnprotected(analysis, codePaths, unit, call, authOptions)
+          ) {
             reported.add(unit);
             const isAction = unit.context === "server-action";
             context.report({
@@ -164,6 +175,7 @@ export const requireAuthBeforeRevalidate: Rule = defineRule({
           }
         }
         calls = [];
+        codePaths.reset();
       },
     };
   },
@@ -178,6 +190,7 @@ function withDefaults(
 
 function isUnprotected(
   analysis: FileAnalysis,
+  codePaths: CodePathTracker,
   unit: FunctionInfo,
   call: ESTree.CallExpression,
   options: AuthOptions,
@@ -197,22 +210,23 @@ function isUnprotected(
     keys: analysis.sourceCode.visitorKeys,
     checkSecrets: unit.context === "route-handler",
   };
-  let protectedCall = false;
+  const checks: Node[] = [];
+  let trusted = false;
   walk(unit.node, check.keys, (node) => {
-    if (protectedCall || (node !== unit.node && isNestedUnit(analysis, node))) {
+    if (trusted || (node !== unit.node && isNestedUnit(analysis, node))) {
       return SKIP;
     }
     if (node.range[1] > call.range[0]) {
       return undefined;
     }
-    if (isAuthCheck(node, check)) {
-      protectedCall = dominates(node, call, unit.node);
+    if (isAuthCheck(node, check) && !isSwallowedByCatch(node, unit.node)) {
+      checks.push(node);
     } else if (options.trustAwaitedCalls && node.type === "CallExpression") {
-      protectedCall = isAwaitedProjectCall(analysis, node);
+      trusted = isAwaitedProjectCall(analysis, node);
     }
     return undefined;
   });
-  return !protectedCall;
+  return !trusted && !codePaths.dominates(checks, call);
 }
 
 function isNestedUnit(analysis: FileAnalysis, node: Node): boolean {
@@ -318,20 +332,18 @@ function isSecretEnvRead(node: ESTree.MemberExpression): boolean {
   );
 }
 
-function dominates(check: Node, call: Node, boundary: Node): boolean {
-  const statement = getNearestStatement(check, boundary);
-  const list = statement?.parent;
-  if (!statement || !list || !contains(list, call)) {
-    return false;
+function isSwallowedByCatch(check: Node, boundary: Node): boolean {
+  let child: Node = check;
+  for (let parent = check.parent; parent && parent !== boundary; parent = parent.parent) {
+    if (parent.type === "TryStatement" && child === parent.block && parent.handler) {
+      const exit = parent.handler.body.body.at(-1);
+      if (exit?.type !== "ReturnStatement" && exit?.type !== "ThrowStatement") {
+        return true;
+      }
+    }
+    child = parent;
   }
-  let callAncestor: Node | null = call;
-  while (callAncestor && callAncestor.parent !== list) {
-    callAncestor = callAncestor.parent;
-  }
-  return (
-    callAncestor !== null &&
-    (callAncestor === statement || statement.range[1] <= callAncestor.range[0])
-  );
+  return false;
 }
 
 function isAwaitedProjectCall(analysis: FileAnalysis, call: ESTree.CallExpression): boolean {

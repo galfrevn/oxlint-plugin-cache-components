@@ -177,19 +177,6 @@ export function getFunctionBodyStatements(fn: FunctionNode): Node[] | null {
   return fn.body?.type === "BlockStatement" ? fn.body.body : null;
 }
 
-export function getNearestStatement(node: Node, boundary: Node): Node | null {
-  for (let current: Node | null = node; current && current !== boundary; current = current.parent) {
-    if (current.parent && STATEMENT_LIST_OWNERS.has(current.parent.type)) {
-      return current;
-    }
-  }
-  return null;
-}
-
-export function contains(outer: Node, inner: Node): boolean {
-  return outer.range[0] <= inner.range[0] && inner.range[1] <= outer.range[1];
-}
-
 export function isPascalCase(name: string): boolean {
   return /^[A-Z][A-Za-z0-9]*$/.test(name) && /[a-z]/.test(name);
 }
