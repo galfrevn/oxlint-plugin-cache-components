@@ -12,6 +12,10 @@ import { validInvalidationContext } from "./valid-invalidation-context.ts";
 
 export type Severity = "error" | "warn";
 
+export type PresetName = "all" | "recommended" | "strict";
+
+export const PLUGIN_NAME = "cache-components";
+
 export interface RuleEntry {
   readonly rule: Rule;
   readonly recommended: Severity;
@@ -28,3 +32,12 @@ export const RULES: Readonly<Record<string, RuleEntry>> = {
   "require-revalidate-path-type": { rule: requireRevalidatePathType, recommended: "warn" },
   "require-auth-before-revalidate": { rule: requireAuthBeforeRevalidate, recommended: "warn" },
 };
+
+export function presetRules(preset: PresetName): Record<string, Severity> {
+  return Object.fromEntries(
+    Object.entries(RULES).map(([name, entry]) => [
+      `${PLUGIN_NAME}/${name}`,
+      preset === "recommended" ? entry.recommended : "error",
+    ]),
+  );
+}
