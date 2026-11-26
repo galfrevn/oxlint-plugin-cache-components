@@ -61,9 +61,12 @@ A pull request that changes the published package adds a changeset: run `pnpm ch
 
 Releases go through GitHub Actions, and only the maintainer can approve one.
 
-1. On every push to `main`, the `Release` workflow collects the changesets into a `chore: release` pull request that bumps the version and updates `CHANGELOG.md`.
-2. Merging that pull request leaves a version in `package.json` that is not on npm yet. The `publish` job then waits for approval in the `npm` environment.
-3. After approval, the job runs `pnpm check`, publishes with provenance, and creates the git tag and the GitHub release.
+1. Changesets accumulate in `.changeset/` on `main`. The `Release` workflow publishes nothing while a changeset is pending.
+2. To release, run `pnpm version-packages` on a branch. It bumps the version in `package.json`, updates `CHANGELOG.md`, and deletes the changesets. Commit the result as `chore: release <version>`, open a pull request, and merge it.
+3. On that push to `main`, the `Release` workflow finds a version that is not on npm yet, and the `publish` job waits for approval in the `npm` environment.
+4. After approval, the job runs `pnpm check`, publishes with provenance, and creates the git tag and the GitHub release.
+
+GitHub Actions never opens pull requests or pushes to `main`, so the repository does not need to let Actions create pull requests.
 
 The `publish` job authenticates with an `NPM_TOKEN` secret in the `npm` environment when it exists, and with npm trusted publishing otherwise. To use trusted publishing, add a trusted publisher in the package settings on npmjs.com with this repository, the workflow `release.yml`, and the environment `npm`, then delete the token with `gh secret delete NPM_TOKEN --env npm`.
 
