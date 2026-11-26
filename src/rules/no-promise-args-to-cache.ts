@@ -45,7 +45,7 @@ export const noPromiseArgsToCache: Rule = defineRule({
     type: "problem",
     docs: {
       description:
-        "Disallow passing request-time promises such as `searchParams` or `cookies()` to cached functions without `await`.",
+        "Disallow passing request-time promises such as `cookies()` or `headers()` to cached functions without `await`.",
       recommended: true,
       url: ruleDocsUrl(RULE_NAME),
     },
@@ -78,9 +78,7 @@ export const noPromiseArgsToCache: Rule = defineRule({
       "Program:exit"() {
         const options = getRuleOptions(context);
         const analysis = analyze(context, options);
-        const props = getBoolean(options, "checkParams", false)
-          ? ["searchParams", "params"]
-          : ["searchParams"];
+        const props = getBoolean(options, "checkParams", false) ? ["searchParams", "params"] : [];
         for (const unit of analysis.units) {
           if (unit.cacheScope && isPublicCacheKind(unit.cacheScope.kind)) {
             for (const site of analysis.callGraph.callersOf(unit.node)) {

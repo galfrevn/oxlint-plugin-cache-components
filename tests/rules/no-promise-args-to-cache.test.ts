@@ -115,11 +115,20 @@ export default function Page() {
   return <Header theme={readTheme(false)} />;
 }`,
     },
+    {
+      name: "searchParams passed without await is not reported by default",
+      filename: "app/search/page.tsx",
+      code: `
+export default function Page({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  return <Results query={searchParams} />;
+}${RESULTS}`,
+    },
   ],
   invalid: [
     {
-      name: "searchParams through JSX",
+      name: "searchParams through JSX with checkParams",
       filename: "app/search/page.tsx",
+      options: [{ checkParams: true }],
       code: `
 export default function Page({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   return <Results query={searchParams} />;
@@ -133,8 +142,9 @@ export default function Page({ searchParams }: { searchParams: Promise<{ q?: str
       ],
     },
     {
-      name: "searchParams through a call",
+      name: "searchParams through a call with checkParams",
       filename: "app/search/page.tsx",
+      options: [{ checkParams: true }],
       code: `
 async function search(params: Promise<{ q?: string }>) {
   "use cache: remote";

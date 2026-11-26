@@ -6,33 +6,37 @@ Disallow passing request-time promises to cached functions without `await`.
 
 ## Rule details
 
-A cached function waits for its arguments. When an argument is a promise of request data, such as the `searchParams` prop or `cookies()`, it cannot resolve during the build. Next.js waits 50 seconds and then fails with "Filling a cache during prerender timed out". There is no other message pointing at the cause.
+A cached function waits for its arguments. When an argument is a promise of request data, such as `cookies()`, it cannot resolve during the build. Next.js 16.4.6 waits about 50 seconds and then fails with "A `"use cache"` function took too long during prerendering". The message names `params` and `searchParams` as common causes, but does not point at the argument.
 
-Passing the whole `params` or `searchParams` promise to a child is a documented pattern for uncached children. It is wrong for cached children.
+The conformance app confirmed the timeout for `cookies()` and for a captured promise that waits for `connection()`. Passing the `searchParams` or `params` promise inside a `<Suspense>` boundary did not time out, because Next.js postpones the cached component, so those props are reported only with `checkParams`.
 
 The rule checks every call and every JSX element in the file that targets a `"use cache"`, `"use cache: remote"`, or `"use cache: <handler>"` function. It reports an argument or prop that is:
 
-- The `searchParams` prop of a page, destructured or read as `props.searchParams`, without `await`.
 - `cookies()`, `headers()`, or `draftMode()` without `await`, or a variable bound to one of those calls without `await`.
 - A call to a function listed in `requestApis`, without `await`.
 - A call, without `await`, to an async function in the same file that always reads `cookies()`, `headers()`, `connection()`, or `draftMode()`.
 - A variable bound to one of those promises that a cached function declared inside the caller uses. Next.js passes captured variables to the cached function like arguments.
-- The `params` prop of a segment, when `checkParams` is `true`.
+- The `searchParams` and `params` props of a segment, destructured or read as `props.searchParams`, when `checkParams` is `true`.
 
 ## Examples
 
 Invalid:
 
 ```tsx
-// app/search/page.tsx
-export default function Page({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  return <Results query={searchParams} />;
+import { connection } from "next/server";
+
+async function fetchUncachedData() {
+  await connection();
+  return Math.random();
 }
 
-async function Results({ query }: { query: Promise<{ q?: string }> }) {
-  "use cache";
-  const { q } = await query;
-  return <List items={await search(q)} />;
+export default async function Page() {
+  const uncachedDataPromise = fetchUncachedData();
+  const Foo = async () => {
+    "use cache";
+    return <p>{await uncachedDataPromise}</p>;
+  };
+  return <Foo />;
 }
 ```
 
@@ -74,7 +78,7 @@ export default function Page({ params }: { params: Promise<{ slug: string }> }) 
 }
 ```
 
-- `checkParams` (`boolean`, default `false`): also report the `params` prop. Whether `params` always times out, or only when `generateStaticParams` does not provide the values, is not settled, so it is off by default.
+- `checkParams` (`boolean`, default `false`): also report the `searchParams` and `params` props. On Next.js 16.4.6 they did not time out inside a `<Suspense>` boundary, so they are off by default. Turn the option on to keep cached functions free of request promises as a convention.
 - `requestApis` (`string[]`, default `[]`): third-party functions that return request data, in the same format as in [`no-request-api-in-cache`](no-request-api-in-cache.md#options). It can also be set once in `settings["cache-components"].requestApis`.
 
 ## Limitations

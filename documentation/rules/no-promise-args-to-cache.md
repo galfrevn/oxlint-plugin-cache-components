@@ -19,9 +19,8 @@ This error is expensive. The code gives no clear message, only a 50-second wait 
 1. Identify the cached functions and components in the file: a function directive, or an export from a `'use cache'` file.
 2. Walk their call sites: a `CallExpression` whose callee resolves to the cached function, and a `JSXOpeningElement` for the cached component. Each attribute is an argument.
 3. An argument or attribute is a **request promise** if it is:
-   - A direct reference to the `searchParams` parameter (destructured, or as `props.searchParams`) of a segment component, **without** `await`.
    - `cookies()`, `headers()`, or `draftMode()` without `await`, or an identifier bound to one of those calls without `await` (`const c = cookies()`).
-   - With `checkParams: true`, also the segment's `params` without `await`.
+   - With `checkParams: true`, also the segment's `searchParams` and `params` (destructured, or as `props.searchParams`) without `await`. The conformance app showed that, on Next.js 16.4.6, passing either one inside a `<Suspense>` boundary does not time out: Next.js postpones the cached component. They are off by default for that reason.
    - An identifier bound to `connection()` is ignored. `no-request-api-in-cache` already covers it when it is used inside the cache.
 4. If the argument is wrapped in `await`, or destructured before it is passed, it is valid.
 5. A call, without `await`, to a local async function that reads `cookies()`, `headers()`, `connection()`, `draftMode()`, or a `requestApis` entry unconditionally (as in `no-request-api-in-cache`) is also a request promise.
@@ -31,22 +30,26 @@ This error is expensive. The code gives no clear message, only a 50-second wait 
 
 ### Invalid
 
-```tsx
-export default function Page({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  return <Results query={searchParams} />;   // invalid: Results is "use cache"
-}
-
-async function Results({ query }: { query: Promise<{ q?: string }> }) {
-  "use cache";
-  const { q } = await query;
-  return <List items={await search(q)} />;
-}
-```
-
 ```ts
 import { cookies } from "next/headers";
 export default async function Page() {
   return <Prefs store={cookies()} />;        // invalid: if Prefs is "use cache"
+}
+```
+
+```tsx
+import { connection } from "next/server";
+async function fetchUncachedData() { await connection(); return Math.random(); }
+export default async function Page() {
+  const uncachedDataPromise = fetchUncachedData();
+  const Foo = async () => { "use cache"; return <p>{await uncachedDataPromise}</p>; }; // invalid: capturedPromise
+  return <Foo />;
+}
+```
+
+```tsx
+export default function Page({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  return <Results query={searchParams} />;   // invalid only with checkParams: true
 }
 ```
 
@@ -71,7 +74,7 @@ export default function Page({ params }: { params: Promise<{ slug: string }> }) 
 type Options = [{ checkParams?: boolean; requestApis?: string[] }]; // checkParams default false
 ```
 
-`checkParams` is off by default. **Unverified:** check in the conformance app whether passing `params` without `await` to a cached function always times out, or whether it depends on `generateStaticParams` providing the values. If it always fails, switch the default to `true`.
+`checkParams` is off by default. **Verified** in the conformance app on 2026-11-26 with Next.js 16.4.6: `params` and `searchParams` passed without `await` inside a `<Suspense>` boundary build and render (cases `valid-params-arg` and `valid-search-params-arg`), while `cookies()` without `await` and a captured `connection()` promise fail after about 50 seconds with "A `"use cache"` function took too long during prerendering" (cases `promise-arg-timeout` and `promise-arg-captured`).
 
 ## Edge cases
 
@@ -90,7 +93,9 @@ Low with `searchParams`, `cookies()`, and `headers()`. With `params` the result 
 
 ## Tests
 
-- [ ] `searchParams` through JSX and through a call → error.
+- [ ] `searchParams` through JSX and through a call → valid by default; error with `checkParams: true`.
+- [ ] Captured `cookies()` and a captured helper promise → `capturedPromise`; captured awaited value → valid.
+- [ ] Unawaited call to a local helper that reads `headers()` → error; a helper that reads it only in a branch → valid.
 - [ ] `cookies()` without `await` → error; with `await` → valid.
 - [ ] `const c = headers(); <X h={c} />` → error.
 - [ ] `params` with `checkParams` false and true.

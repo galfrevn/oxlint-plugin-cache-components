@@ -29,7 +29,7 @@ const EXPECTED = [
   },
   { severity: "error", location: "app/page.tsx:11", rule: "require-cachelife-when-nested" },
   { severity: "error", location: "app/page.tsx:12", rule: "no-request-api-in-cache" },
-  { severity: "error", location: "app/search/page.tsx:2", rule: "no-promise-args-to-cache" },
+  { severity: "error", location: "app/prefs/page.tsx:4", rule: "no-promise-args-to-cache" },
 ];
 
 describe("oxlint CLI", () => {
