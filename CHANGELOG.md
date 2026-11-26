@@ -4,8 +4,8 @@
 
 ### Patch Changes
 
-- f8ab91d: Fix the file analysis taking quadratic time in the number of identifiers in one function. Each lookup scanned every reference of the scope, so a large Server Action or cached function could stall oxlint for seconds. Lookups now use an index built once per scope.
-- 3826325: Skip more files before oxlint sends their AST to JavaScript. Every rule except `no-legacy-segment-config` now requires the file to mention `next/cache` or `"use cache"`, instead of any `next/` import such as `next/link`. Files that the new check skips could not produce a report.
+- 877a4f9: Fix the file analysis taking quadratic time in the number of identifiers in one function. Each lookup scanned every reference of the scope, so a large Server Action or cached function could stall oxlint for seconds. Lookups now use an index built once per scope.
+- 2959b4a: Skip more files before oxlint sends their AST to JavaScript. Every rule except `no-legacy-segment-config` now requires the file to mention `next/cache` or `"use cache"`, instead of any `next/` import such as `next/link`. Files that the new check skips could not produce a report.
 
 ## 0.2.1
 
