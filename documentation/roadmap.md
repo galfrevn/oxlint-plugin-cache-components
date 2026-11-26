@@ -9,32 +9,40 @@ Tasks are meant to be taken **in order** by an agent, one per PR. Each has accep
 - `package.json` as described in `architecture.md`, with `exports` for `.` and `./configs`.
 - The repo's `oxlint.config.ts` (the repo lints itself).
 - AC: `pnpm build` produces `dist/index.js`. An example `oxlint.config.ts` with `jsPlugins: ["./dist/index.js"]` loads the plugin without errors, even though it has no rules yet.
+- Status: done.
 
 **T0.2 CI**
 - Workflows from the CI section of `architecture.md`, without the corpus.
 - AC: CI passes with the oxlint matrix.
+- Status: done. `.github/workflows/ci.yml` also runs ESLint 9 and 10, and Node.js 20.19 to 26.
 
 **T0.3 License and third-party notices**
 - License: MIT ([ADR-007](decisions.md#adr-007-license)).
 - `THIRD_PARTY_NOTICES.md` credits the messages and fixtures adapted from Next.js (MIT).
 - AC: both files exist, and the README mentions them.
+- Status: done.
 
 ## M1 — Analysis utilities (days 2 to 4)
 
 **T1.1 `directives.ts`**
 - AC: tests for file and function directives, covering all variants of `use cache`, `'use server'`, and `'use client'`, with single and double quotes. Directive prologues are told apart from loose strings. Confirm how oxc serializes directives, and document it in `research.md`.
+- Status: done.
 
 **T1.2 `next-bindings.ts`**
 - AC: named imports, aliases, and namespace imports from `next/headers`, `next/server`, `next/cache`, and `react` resolve. A shadowed identifier does not resolve. `requestApis` works with and without the `module:` prefix.
+- Status: done.
 
 **T1.3 `contexts.ts`**
 - AC: `FileKind` is correct for `app/**/route.ts`, `src/app/**/page.tsx`, `proxy.ts`, `middleware.ts`, `'use server'`, and `'use client'`. `FnContext` is correct for actions (file-level and inline), HTTP handlers, segment components, `generateStaticParams`, and `generateMetadata`. Confirm that `context.filename` works in RuleTester; if it does not, document a workaround.
+- Status: done.
 
 **T1.4 `call-graph.ts` + `analysis.ts`**
 - AC: edges for calls and for JSX, cycle protection, `reachableFrom` with depth, and `getEffectiveContexts`. Measure memoization per `Program`. If it is not shared between rules, document that.
+- Status: done. The analysis is shared between rules (see `research.md` §1).
 
 **T1.5 `cache-life.ts` and `messages.ts`**
 - AC: the profile table is identical to the docs. `isShortLived` handles presets, inline objects, and `shortProfiles`. Messages include URLs.
+- Status: done. The classifier is `classifyCacheLife`.
 
 ## M2 — Rules, wave 1 (days 4 to 7)
 
@@ -46,6 +54,7 @@ For each rule: implementation, tests from the specification, a public doc at `do
 - **T2.4** `require-revalidate-tag-profile`.
 - **T2.5** `require-revalidate-path-type`.
 - Common AC: all specification tests pass, suggestions are tested, and `pnpm lint` and `pnpm typecheck` are clean.
+- Status: done.
 
 ## M3 — Rules, wave 2 (days 7 to 9)
 
@@ -54,48 +63,61 @@ For each rule: implementation, tests from the specification, a public doc at `do
 - **T3.3** `no-promise-args-to-cache`.
 - **T3.4** `require-auth-before-revalidate`.
 - Common AC: same as M2.
+- Status: done.
 
 ## M4 — Next conformance (days 8 to 10, in parallel with M3)
 
 **T4.1 Conformance app**
 - `conformance/next-app` on Next 16.4.x, with one route per invalid example of the v0.1 rules.
 - AC: `pnpm conformance` confirms the error or warning for each `recommended` rule. The items marked **Unverified** are settled in the docs: `connection()` in private, `params` without `await`, remote inside private, arrow functions with a directive, and custom directives.
+- Status: open.
 
 **T4.2 Next fixtures**
 - AC: fixtures imported with attribution, and a comparison test that passes, with each difference justified.
+- Status: open. The corpus covers part of it: `cloudflare/vinext` copies many Next.js fixtures, and the plugin reports them (see `scripts/corpus/triage.md`).
 
 ## M5 — Corpus and false positives (days 10 to 12)
 
 **T5.1 Runner** (`scripts/corpus/run.mjs`).
 - AC: runs over the 60 repos with the most stars, plus `vercel/shop`, and produces JSON and a summary.
+- Status: done.
 
 **T5.2 Triage**
 - AC: one triaged sample per rule in `triage.md`, and the FP rate calculated. Rules outside the threshold are fixed or moved down a preset, with an ADR.
+- Status: done. Two rules were fixed ([ADR-008](decisions.md#adr-008-precision-fixes-from-the-first-corpus-run)).
 
 **T5.3 Performance**
 - AC: measured overhead stays below 2 times the time oxlint takes with its default config.
+- Status: measured, AC not met. An empty JS plugin is already about 4 times slower than the default config on oxlint 1.95.0, and this plugin is faster than an empty JS plugin across the corpus. See `research.md` §7.
 
 **T5b (optional, high value for the launch) Agent eval** (`spec.md`, "Agent integration", item 5).
 - AC: 10 tasks × 2 agents × 3 runs, with and without the hook, with publishable results and methodology.
+- Status: open.
 
 ## M6 — Presets, integration and v0.1 release (days 12 to 14)
 
 **T6.1 Presets** `recommended`, `strict`, and `all` for oxlint, and `flat/recommended` for ESLint.
 - AC: the examples in `spec.md` work when copied as-is into a test project.
+- Status: done. `tests/e2e/oxlint.test.ts` runs both configuration forms from `spec.md` with the oxlint CLI.
 
 **T6.2 Public README** updated to the release state, and one doc per rule.
+- Status: done.
 
 **T6.3 Skill `install-cache-components`** (`spec.md`, section Agent integration).
 - AC: tested in a test repository with Claude Code and with another harness.
+- Status: open. The skill is written. Testing it needs the package on npm.
 
 **T6.4 Hook recipes** tested on at least 2 harnesses (Claude Code and one more).
+- Status: open. The recipes are in `skills/install-cache-components/references/hooks.md`.
 
 **T6.5 Release**
 - Changeset, `v0.1.0`, and tag. **The maintainer publishes to npm.**
 - AC: `npm pack` contains only `dist`, `docs`, `THIRD_PARTY_NOTICES.md`, `LICENSE`, and the README.
+- Status: open for the maintainer. `scripts/check-package.mjs` checks the package contents in CI. The package also includes `CHANGELOG.md`. The version is 0.1.0, and the tag and the npm release are left to the maintainer.
 
 **T6.6 Community files** before the repository goes public: `SECURITY.md` and `CODE_OF_CONDUCT.md` (their text is in the last two sections of `CONTRIBUTING.md`), issue forms for bugs and rule proposals, and a pull request template.
 - AC: GitHub shows the security policy and the code of conduct in the repository's community profile.
+- Status: done.
 
 ## v0.2 (weeks 3 and 4)
 
