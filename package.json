@@ -53,6 +53,7 @@
     "format:check": "oxfmt --check",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.build.json",
     "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test",
+    "corpus": "pnpm run build && node scripts/corpus/run.mjs",
     "next-sync": "node scripts/next-sync.mjs",
     "smoke": "node scripts/smoke.mjs",
     "prepack": "pnpm run build"
