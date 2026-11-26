@@ -52,6 +52,7 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.build.json",
+    "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test",
     "prepack": "pnpm run build"
   },
   "engines": {

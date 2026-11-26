@@ -9,6 +9,7 @@
     "pnpm-lock.yaml",
     "dist/**",
     "coverage/**",
-    ".corpus/**"
+    ".corpus/**",
+    "scripts/corpus/results/**"
   ]
 }
