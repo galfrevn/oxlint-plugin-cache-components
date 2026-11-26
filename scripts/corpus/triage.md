@@ -1,12 +1,12 @@
 # Corpus triage
 
-The false-positive review of each corpus run. Review up to 30 findings per rule, then compute the false positive rate as FP / (TP + FP). See the corpus section of [`documentation/architecture.md`](../../documentation/architecture.md#4-corpus-false-positives) for the thresholds.
+The false-positive review of each corpus run. Review up to 30 findings per rule, then compute the false positive rate as FP / (TP + FP). The thresholds are in [`README.md`](README.md#thresholds).
 
 The per-finding results in `scripts/corpus/results/` stay on the machine that ran the corpus and are not committed. This file does not name repositories with confirmed bugs. Reporting a bug to a corpus repository needs approval from the maintainer, case by case.
 
 ## Run of 2026-11-26
 
-61 repositories: the 60 with the most stars from `documentation/corpus.tsv`, plus `vercel/shop`. `all` preset, plugin version 0.1.0, oxlint 1.95.0. No plugin errors.
+61 repositories: the 60 with the most stars from `repositories.tsv`, plus `vercel/shop`. `all` preset, plugin version 0.1.0, oxlint 1.95.0. No plugin errors.
 
 | Rule | Reports | Reviewed | TP | FP | FP rate | Threshold |
 |---|---|---|---|---|---|---|
@@ -29,7 +29,7 @@ Notes:
 
 ### False positives fixed during the run
 
-The first pass had 9 `transitive` reports and 311 `require-auth-before-revalidate` reports. The fixes are recorded in [ADR-008](../../documentation/decisions.md#adr-008-precision-fixes-from-the-first-corpus-run).
+The first pass had 9 `transitive` reports and 311 `require-auth-before-revalidate` reports.
 
 | Rule | Pattern | Fix |
 |---|---|---|

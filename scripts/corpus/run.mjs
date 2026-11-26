@@ -103,7 +103,7 @@ async function sequence(items, task) {
 }
 
 async function selectRepos(limit) {
-  const tsv = await readFile(join(ROOT, "documentation/corpus.tsv"), "utf8");
+  const tsv = await readFile(join(ROOT, "scripts/corpus/repositories.tsv"), "utf8");
   const rows = tsv
     .trim()
     .split("\n")
