@@ -1,7 +1,19 @@
-# oxlint-plugin-cache-components
+<p align="center">
+  <img src="https://raw.githubusercontent.com/galfrevn/oxlint-plugin-cache-components/main/.github/assets/banner.gif" alt="oxlint-plugin-cache-components. An editor shows three files with Cache Components mistakes, and oxlint reports each one with its rule and message." width="100%" />
+</p>
 
-[![CI](https://github.com/galfrevn/oxlint-plugin-cache-components/actions/workflows/ci.yml/badge.svg)](https://github.com/galfrevn/oxlint-plugin-cache-components/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<p align="center">
+  <a href="https://www.npmjs.com/package/oxlint-plugin-cache-components"><img src="https://shieldcn.dev/npm/oxlint-plugin-cache-components.svg?logo=npm&variant=secondary&mode=dark&font=geist" alt="npm version" /></a>
+  <a href="https://github.com/galfrevn/oxlint-plugin-cache-components/actions/workflows/ci.yml"><img src="https://shieldcn.dev/github/ci/galfrevn/oxlint-plugin-cache-components.svg?workflow=ci.yml&branch=main&variant=secondary&mode=dark&font=geist" alt="CI status" /></a>
+  <a href="https://github.com/galfrevn/oxlint-plugin-cache-components/actions/workflows/codeql.yml"><img src="https://shieldcn.dev/github/ci/galfrevn/oxlint-plugin-cache-components.svg?workflow=codeql.yml&branch=main&label=CodeQL&variant=secondary&mode=dark&font=geist" alt="CodeQL status" /></a>
+  <a href="https://www.npmjs.com/package/oxlint-plugin-cache-components#provenance"><img src="https://shieldcn.dev/badge/npm-provenance.svg?logo=lu:ShieldCheck&variant=secondary&mode=dark&font=geist" alt="npm provenance" /></a>
+  <a href="LICENSE"><img src="https://shieldcn.dev/npm/license/oxlint-plugin-cache-components.svg?logo=lu:Scale&variant=secondary&mode=dark&font=geist" alt="MIT license" /></a>
+  <br />
+  <a href="#manual-installation"><img src="https://shieldcn.dev/badge/dynamic/json.svg?url=https%3A%2F%2Fregistry.npmjs.org%2Foxlint-plugin-cache-components%2Flatest&query=peerDependencies.oxlint&label=oxlint&logo=oxc&variant=secondary&mode=dark&font=geist" alt="oxlint peer version" /></a>
+  <a href="#manual-installation"><img src="https://shieldcn.dev/badge/dynamic/json.svg?url=https%3A%2F%2Fregistry.npmjs.org%2Foxlint-plugin-cache-components%2Flatest&query=peerDependencies.eslint&label=ESLint&logo=eslint&variant=secondary&mode=dark&font=geist" alt="ESLint peer version" /></a>
+  <a href="conformance/RESULTS.md"><img src="https://shieldcn.dev/badge/Next.js-16.svg?logo=nextdotjs&variant=secondary&mode=dark&font=geist" alt="Rules confirmed against Next.js 16.4.6" /></a>
+  <a href="#manual-installation"><img src="https://shieldcn.dev/npm/node/oxlint-plugin-cache-components.svg?logo=nodedotjs&label=Node.js&variant=secondary&mode=dark&font=geist" alt="Node.js version" /></a>
+</p>
 
 Oxlint rules that catch Next.js Cache Components errors before `next start`.
 
