@@ -39,8 +39,8 @@ Date: 2026-11-26
 
 ### Decision
 
-- ESLint compatibility is kept **at no extra design cost**: same API, same package, and a `configs["flat/recommended"]` export.
-- Limited guarantee: a CI smoke test with ESLint 9 on 3 fixtures. The full suite runs only on oxlint.
+- ESLint compatibility is kept **at no extra design cost**: same API, same package, and `configs["flat/recommended"]`, `configs["flat/strict"]`, and `configs["flat/all"]` exports.
+- Limited guarantee: a CI smoke test with ESLint 9 and ESLint 10 on 3 fixtures. The full suite runs only on oxlint. ESLint 9 reached end of support in 2026, so the development dependency is ESLint 10, and the CI matrix keeps 9 for users who have not upgraded (revised 2026-11-26).
 - The README tagline is "oxlint-first, also works in ESLint."
 
 ### Consequences
@@ -163,3 +163,30 @@ The project is licensed under the MIT license.
 ### Consequences
 
 When code lands, keep the Next.js copyright notice for quoted text in a `THIRD_PARTY_NOTICES.md` file.
+
+## ADR-008: Precision fixes from the first corpus run
+
+Status: Accepted
+Date: 2026-11-26
+
+### Context
+
+The first corpus run (61 repositories, `all` preset, 2026-11-26) found two rules above their false-positive thresholds:
+
+- `no-request-api-in-cache`, message `transitive`: 9 reports, 8 false positives. One repository reads `cookies()` in a helper only inside `if (is_session)`, and its cached callers never pass `is_session`.
+- `require-auth-before-revalidate`: 311 reports. A sample of 30 had about 19 false positives. Auth helpers with custom names (`requireAdmin()`, `requireCronAuth()`, `adminProcedure`) explained about half. Server Actions that delegate to a data access layer in another file, which checks auth inside, explained most of the rest. The Next.js data security guide recommends that layer.
+
+The architecture's rule is to fix a rule or move it down a preset, and to record the decision.
+
+### Decision
+
+Fix both rules, and keep them in their presets.
+
+- `transitive` reports a request API only when it runs unconditionally in each helper on the path: not in a branch, a loop, a `catch` clause, a callback, or after a possible early exit. This follows ADR-005: a conditional read is not provable from the cached caller.
+- `require-auth-before-revalidate` recognizes auth-like names, functions imported from auth modules, rate limits, secret constants, HMAC headers, and wrappers whose names indicate auth. With the new `trustAwaitedCalls` option (default `true`), an awaited direct call to an imported or local function before the invalidation counts as a possible check. Member calls on a client, such as `await db.posts.delete()`, do not count.
+
+### Consequences
+
+- (+) The second run had 1 `transitive` report, a true positive, and 93 `require-auth-before-revalidate` reports. A new sample of 30 had 2 false positives before the `permission` wrapper pattern, and none after it. Details are in `scripts/corpus/triage.md`.
+- (−) More false negatives: a transitive read behind a condition, and a Server Action that awaits an unrelated helper before an unauthenticated invalidation, are no longer reported. Users can set `trustAwaitedCalls: false` for the stricter behavior.
+
