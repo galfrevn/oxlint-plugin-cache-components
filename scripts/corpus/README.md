@@ -29,7 +29,7 @@ pnpm corpus --limit 60 --baseline
 pnpm corpus --limit 60 --max-ratio 2 --quiet
 ```
 
-The runner takes the repositories with the most stars, plus `vercel/shop`, and clones each one with `git clone --depth 1` into `.corpus/`. It installs no dependencies and runs no code from the repositories. It lints them with the `all` preset and `--disable-nested-config`, so oxlint loads no configuration file from a cloned repository. `--baseline` also times oxlint with its default config and with an empty JS plugin.
+The runner takes the repositories with the most stars, plus `vercel/shop`, and clones each one with `git clone --depth 1` into `.corpus/`. It installs no dependencies and runs no code from the repositories. It lints them with the `all` preset, the options of the `migration` preset, and `--disable-nested-config`, so oxlint loads no configuration file from a cloned repository. `--baseline` also times oxlint with its default config and with an empty JS plugin.
 
 `--max-ratio <n>` implies `--baseline`. The run exits with an error when the plugin takes more than `n` times as long as the empty JS plugin across all repositories, or when the plugin crashes on any file. `--quiet` prints only the totals, without a line per repository.
 

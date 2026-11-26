@@ -57,9 +57,8 @@ export function presetRules(preset: PresetName): Record<string, RuleSetting> {
   for (const [name, entry] of Object.entries(RULES)) {
     const severity = preset === "all" ? "error" : entry.presets[preset];
     if (severity) {
-      rules[`${PLUGIN_NAME}/${name}`] = entry.presetOptions
-        ? [severity, ...entry.presetOptions]
-        : severity;
+      rules[`${PLUGIN_NAME}/${name}`] =
+        entry.presetOptions && preset !== "all" ? [severity, ...entry.presetOptions] : severity;
     }
   }
   return rules;

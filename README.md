@@ -70,7 +70,7 @@ The plugin needs oxlint 1.95.0 or later and Node.js `^20.19.0 || >=22.12.0`. `ox
 | `recommended` | `cacheComponents.recommended` | `configs["flat/recommended"]` | `error` for rules that map to a Next.js error, `warn` for deprecations, no-ops, and the auth heuristic |
 | `strict` | `cacheComponents.strict` | `configs["flat/strict"]` | the `recommended` rules as `error`, plus the serialization and `React.cache` heuristics as `warn` |
 | `migration` | `cacheComponents.migration` | `configs["flat/migration"]` | `no-legacy-segment-config` as `error`, for projects that enable `cacheComponents` |
-| `all` | `cacheComponents.all` | `configs["flat/all"]` | every rule as `error` |
+| `all` | `cacheComponents.all` | `configs["flat/all"]` | every rule as `error`. `no-legacy-segment-config` reports nothing unless you also extend `migration` |
 
 Combine `migration` with another preset while you move a project to Cache Components:
 
@@ -271,7 +271,7 @@ pnpm check
 `pnpm check` runs oxfmt, oxlint, the TypeScript checker, every `RuleTester` suite, and the end-to-end tests, which build the package and lint a fixture app with the oxlint CLI and with ESLint. Other scripts:
 
 - `pnpm build`: builds `dist/` with tsdown, and checks the package with publint and Are the Types Wrong.
-- `pnpm corpus --limit 60`: clones public repositories from [`scripts/corpus/repositories.tsv`](scripts/corpus/repositories.tsv) with `git clone --depth 1`, lints them with the `all` preset, and writes the findings to `scripts/corpus/results/`. It does not install dependencies or run code from those repositories.
+- `pnpm corpus --limit 60`: clones public repositories from [`scripts/corpus/repositories.tsv`](scripts/corpus/repositories.tsv) with `git clone --depth 1`, lints them with the `all` and `migration` presets, and writes the findings to `scripts/corpus/results/`. It does not install dependencies or run code from those repositories.
 - `pnpm next-sync`: compares the Next.js error sources on `canary` with the snapshot in `scripts/next-sync/snapshot/`.
 - `pnpm conformance`: builds each case in `conformance/cases/` with Next.js, requests it when needed, and checks that Next.js fails as expected and that the plugin reports the matching rule.
 

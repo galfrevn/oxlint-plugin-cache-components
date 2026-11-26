@@ -38,7 +38,7 @@ if (!existsSync(PLUGIN)) {
 }
 
 const { default: plugin } = await import(PLUGIN);
-const { all } = await import(join(ROOT, "dist/configs.js"));
+const { all, migration } = await import(join(ROOT, "dist/configs.js"));
 const messageMatchers = buildMessageMatchers(plugin.rules);
 
 await mkdir(CORPUS_DIR, { recursive: true });
@@ -51,7 +51,7 @@ await writeFile(
   JSON.stringify({
     categories: { correctness: "off" },
     jsPlugins: all.jsPlugins,
-    rules: all.rules,
+    rules: { ...all.rules, ...migration.rules },
   }),
 );
 await writeFile(baselinePath, "{}");

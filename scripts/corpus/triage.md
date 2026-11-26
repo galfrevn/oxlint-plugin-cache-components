@@ -19,7 +19,7 @@ This run reviews the rules added in 0.2.0. The rules from 0.1.0 report the same 
 
 Notes:
 
-- `no-legacy-segment-config` reports only with `cacheComponents: true`, and the `all` preset sets it for every repository. A report is in scope when the nearest `next.config` of the file sets `cacheComponents: true`. The 5 reports in scope are in one test fixture that exports `runtime`, `revalidate`, and `dynamic`, which Next.js rejects with Cache Components. Of the other 493, 437 are in apps whose `next.config` does not enable Cache Components, including one where the option is commented out, and 56 are in directories without a `next.config`.
+- `no-legacy-segment-config` reports only with `cacheComponents: true`, and the corpus run sets it for every repository. A report is in scope when the nearest `next.config` of the file sets `cacheComponents: true`. The 5 reports in scope are in one test fixture that exports `runtime`, `revalidate`, and `dynamic`, which Next.js rejects with Cache Components. Of the other 493, 437 are in apps whose `next.config` does not enable Cache Components, including one where the option is commented out, and 56 are in directories without a `next.config`.
 - `no-introspect-passthrough` and `serializable-cache-args` report nothing in the corpus, so the corpus does not measure their false-positive rate. The conformance cases in [`conformance/RESULTS.md`](../../conformance/RESULTS.md) confirm what they report.
 
 ### False positives fixed during the run

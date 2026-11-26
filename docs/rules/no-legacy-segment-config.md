@@ -14,7 +14,7 @@ Error: Route segment config "revalidate" is not compatible with `nextConfig.cach
 
 This rule reports the same exports in the editor, before the build. It checks `export const <name> = ...` and `export { <name> }` of a local constant, in segment files inside the app directory.
 
-A per-file rule can't read `next.config`, so the rule does nothing until you set `cacheComponents: true`. The `migration` preset sets it for you.
+A per-file rule can't read `next.config`, so the rule does nothing until you set `cacheComponents: true`. The `migration` preset sets it for you. The `all` preset enables the rule without the option, because a project that extends `all` may not enable Cache Components.
 
 Each report says what replaces the export, following the [migration guide](https://nextjs.org/docs/app/guides/migrating-to-cache-components):
 

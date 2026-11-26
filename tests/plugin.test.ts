@@ -98,6 +98,10 @@ describe("presets", () => {
     }
   });
 
+  it("leaves cacheComponents to the migration preset in all", () => {
+    expect(all.rules["cache-components/no-legacy-segment-config"]).toBe("error");
+  });
+
   it("registers the plugin by its package name", () => {
     for (const preset of Object.values(configs)) {
       expect(preset.jsPlugins).toEqual([
