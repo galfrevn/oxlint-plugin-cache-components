@@ -1,46 +1,31 @@
 # oxlint-plugin-cache-components
 
-An oxlint JS plugin with lint rules for Next.js Cache Components (`"use cache"`). Most rules report a mistake that Next.js already rejects at runtime or during build, so the mistake shows up in the editor and in CI instead.
+[![CI](https://github.com/galfrevn/oxlint-plugin-cache-components/actions/workflows/ci.yml/badge.svg)](https://github.com/galfrevn/oxlint-plugin-cache-components/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Status:** design phase. There is no code and no npm release yet. The design is in [`documentation/`](#documentation).
+Oxlint rules that catch Next.js Cache Components errors before `next start`.
 
-## What it checks
+Next.js validates `"use cache"`, `cacheLife()`, `cacheTag()`, `revalidateTag()`, `updateTag()`, and `refresh()` at runtime. Reading `cookies()` inside a cached function passes `next build` on a dynamic route and fails under `next start`. `revalidatePath("/blog/[slug]")` without a type does nothing and only logs a warning. These rules report the same mistakes in the editor, in CI, and in the coding agent's loop. Each message names the function, explains the constraint, gives the fix, and links the Next.js docs page.
 
-The v0.1 plan has nine rules. Each rule links to its specification in `documentation/rules/`.
+The plugin is oxlint-first and also runs in ESLint. It is a community project, not affiliated with Vercel.
 
-| Rule | What it catches | Preset |
-|---|---|---|
-| [`no-request-api-in-cache`](documentation/rules/no-request-api-in-cache.md) | Request-time APIs read inside a cache scope, such as `cookies()`, `headers()`, and `searchParams`. | `recommended`: error |
-| [`no-cache-api-outside-cache`](documentation/rules/no-cache-api-outside-cache.md) | `cacheTag()` or `cacheLife()` called where no `use cache` scope exists. | `recommended`: error |
-| [`require-cachelife-when-nested`](documentation/rules/require-cachelife-when-nested.md) | A cached function without `cacheLife()` that calls a short-lived cached function from the same file. | `recommended`: error |
-| [`no-invalid-cache-nesting`](documentation/rules/no-invalid-cache-nesting.md) | Cache directive combinations that Next rejects, such as `use cache: private` inside a public cache. | `recommended`: error |
-| [`valid-invalidation-context`](documentation/rules/valid-invalidation-context.md) | `revalidateTag`, `revalidatePath`, `updateTag`, or `refresh` called where Next does not allow them. | `recommended`: error |
-| [`no-promise-args-to-cache`](documentation/rules/no-promise-args-to-cache.md) | Request-data promises, such as `searchParams`, passed to a cached function without `await`. | `recommended`: error |
-| [`require-revalidate-tag-profile`](documentation/rules/require-revalidate-tag-profile.md) | `revalidateTag(tag)` with one argument, which Next deprecates. | `recommended`: warn |
-| [`require-revalidate-path-type`](documentation/rules/require-revalidate-path-type.md) | `revalidatePath()` with a dynamic path and no `type` argument. The call does nothing. | `recommended`: warn |
-| [`require-auth-before-revalidate`](documentation/rules/require-auth-before-revalidate.md) | Cache invalidation in a Server Action or Route Handler with no visible auth check before it. | `recommended`: warn |
+## Install with an agent skill
 
-The `strict` preset raises every rule to error. The rules analyze one file at a time. A helper imported from another file is not checked (see [ADR-005](documentation/decisions.md#adr-005-per-file-analysis-and-false-positive-policy)).
-
-Eight of the nine rules map to an error or warning that Next.js already emits (see [ADR-006](documentation/decisions.md#adr-006-nextjs-errors-as-the-source-of-truth-for-the-catalog)). `require-auth-before-revalidate` is a security heuristic and ships as `warn`.
-
-The planned message for `no-request-api-in-cache` in a transitive case reads:
-
-```text
-`getTheme()` reads `cookies()` (line 4), and it's called inside "use cache" function `Header`. Read the value outside the cached function and pass it as an argument. See https://nextjs.org/docs/messages/next-request-in-use-cache
+```bash
+npx skills add galfrevn/oxlint-plugin-cache-components --skill install-cache-components
 ```
 
-## Planned for v0.2
+Then ask your coding agent to install oxlint-plugin-cache-components in the current repository. The skill installs the packages with the repository's package manager, merges the `recommended` preset into the existing oxlint or ESLint configuration, offers a post-edit hook that lints each file the agent changes, and runs the linter once. It reports the findings and does not fix them automatically.
 
-- [`no-legacy-segment-config`](documentation/rules/backlog.md#cache-componentsno-legacy-segment-config), in a `migration` preset.
-- [`no-introspect-passthrough`](documentation/rules/backlog.md#cache-componentsno-introspect-passthrough), [`serializable-cache-args`](documentation/rules/backlog.md#cache-componentsserializable-cache-args), and [`no-react-cache-across-boundary`](documentation/rules/backlog.md#cache-componentsno-react-cache-across-boundary), as `warn` in `strict`.
+## Manual installation
 
-## Planned usage
+```bash
+pnpm add -D oxlint oxlint-plugin-cache-components
+```
 
-This is the planned API. It may change before the first release.
+Extend the `recommended` preset in `oxlint.config.ts`:
 
 ```ts
-// oxlint.config.ts
 import { defineConfig } from "oxlint";
 import cacheComponents from "oxlint-plugin-cache-components/configs";
 
@@ -49,31 +34,234 @@ export default defineConfig({
 });
 ```
 
-The planned install command is `pnpm add -D oxlint oxlint-plugin-cache-components`. The full planned configuration, including the manual `.oxlintrc.json` form, is in the [product spec](documentation/spec.md#product-spec).
+Or register the plugin in `.oxlintrc.json`:
+
+```json
+{
+  "jsPlugins": ["oxlint-plugin-cache-components"],
+  "rules": {
+    "cache-components/no-request-api-in-cache": "error",
+    "cache-components/no-cache-api-outside-cache": "error",
+    "cache-components/require-cachelife-when-nested": "error",
+    "cache-components/no-invalid-cache-nesting": "error",
+    "cache-components/valid-invalidation-context": "error",
+    "cache-components/no-promise-args-to-cache": "error",
+    "cache-components/require-revalidate-tag-profile": "warn",
+    "cache-components/require-revalidate-path-type": "warn",
+    "cache-components/require-auth-before-revalidate": "warn"
+  }
+}
+```
+
+With ESLint 9 or later, use the flat config:
+
+```js
+import cacheComponents from "oxlint-plugin-cache-components";
+
+export default [cacheComponents.configs["flat/recommended"]];
+```
+
+The plugin needs oxlint 1.95.0 or later and Node.js `^20.19.0 || >=22.12.0`. `oxlint.config.ts` needs Node.js 22.18 or later.
+
+### Presets
+
+| Preset | oxlint | ESLint | Severity |
+|---|---|---|---|
+| `recommended` | `cacheComponents.recommended` | `configs["flat/recommended"]` | `error` for rules that map to a Next.js error, `warn` for deprecations, no-ops, and the auth heuristic |
+| `strict` | `cacheComponents.strict` | `configs["flat/strict"]` | every rule as `error` |
+| `all` | `cacheComponents.all` | `configs["flat/all"]` | every rule as `error` |
+
+### Shared settings
+
+Options that several rules read can be set once. A rule option takes precedence over the shared setting.
+
+```json
+{
+  "settings": {
+    "cache-components": {
+      "requestApis": ["next-auth:auth", "@clerk/nextjs/server:currentUser"],
+      "appDir": ["apps/web/app"],
+      "shortProfiles": ["realtime"],
+      "authFunctions": ["assertAdmin"],
+      "authWrappers": ["adminAction"]
+    }
+  }
+}
+```
+
+- `requestApis`: third-party functions that read cookies or headers, treated like `cookies()`. `"auth"` matches an import named `auth` from any module, and `"next-auth:auth"` matches only that module.
+- `appDir`: App Router directories, matched against the file path relative to where the linter runs. The default is `["app", "src/app"]`.
+- `shortProfiles`: custom `cacheLife` profiles from `next.config` whose `expire` is under 5 minutes or whose `revalidate` is `0`.
+- `authFunctions` and `authWrappers`: auth helpers and wrappers for `require-auth-before-revalidate`, added to its defaults.
+
+## Rules
+
+Each rule has a page in [`docs/rules`](docs/rules) with its examples, options, and limitations.
+
+| Rule | What it reports | `recommended` |
+|---|---|---|
+| [`no-request-api-in-cache`](docs/rules/no-request-api-in-cache.md) | `cookies()`, `headers()`, `connection()`, `searchParams`, `draftMode()` mutations, or Route Handler `request` reads inside a cache scope, including through helpers in the same file. | error |
+| [`no-cache-api-outside-cache`](docs/rules/no-cache-api-outside-cache.md) | `cacheTag()` or `cacheLife()` where no `"use cache"` scope exists: module scope, Server Actions, Route Handlers, Client Components, and `unstable_cache()` callbacks. | error |
+| [`require-cachelife-when-nested`](docs/rules/require-cachelife-when-nested.md) | A cached function without `cacheLife()` that calls or renders a short-lived cached function, which fails during prerender. | error |
+| [`no-invalid-cache-nesting`](docs/rules/no-invalid-cache-nesting.md) | `"use cache: private"` inside a public cache, inside `unstable_cache()`, or reached from `generateStaticParams`. | error |
+| [`valid-invalidation-context`](docs/rules/valid-invalidation-context.md) | `revalidateTag()`, `revalidatePath()`, `updateTag()`, or `refresh()` in a cached function, during render, in a build-time generator, in Proxy, in a Client Component, or `updateTag()` and `refresh()` outside a Server Action. | error |
+| [`no-promise-args-to-cache`](docs/rules/no-promise-args-to-cache.md) | `searchParams`, `cookies()`, or `headers()` passed to a cached function without `await`, which hangs the build for 50 seconds. | error |
+| [`require-revalidate-tag-profile`](docs/rules/require-revalidate-tag-profile.md) | `revalidateTag(tag)` with one argument, which Next.js deprecates. | warn |
+| [`require-revalidate-path-type`](docs/rules/require-revalidate-path-type.md) | `revalidatePath()` with a dynamic route and no `type`, which does nothing. | warn |
+| [`require-auth-before-revalidate`](docs/rules/require-auth-before-revalidate.md) | Cache invalidation in a Server Action or Route Handler with no auth check, secret check, or rate limit before it. | warn |
+
+Eight rules map to an error or warning that Next.js already produces. `require-auth-before-revalidate` is a heuristic based on the Next.js data security guide, so it ships as `warn`.
+
+### Analysis boundaries
+
+The rules analyze one file at a time. They resolve Next.js APIs by following the import binding from `next/headers`, `next/server`, `next/cache`, or `react`, so renamed imports and namespace imports are recognized and a local variable with the same name is not. They follow calls and JSX between functions in the same file. A helper imported from another file is not followed, and a function whose context the file cannot prove, such as an exported helper with no callers in the file, is not reported. The rules do not use type information.
+
+The false-positive review on 61 public repositories that use Cache Components is in [`scripts/corpus/triage.md`](scripts/corpus/triage.md).
+
+## Violation examples
+
+Each snippet below is reported by the named rule.
+
+### `no-request-api-in-cache`
+
+```tsx
+import { cookies } from "next/headers";
+
+async function getTheme() {
+  return (await cookies()).get("theme")?.value;
+}
+
+export async function Header() {
+  "use cache";
+  const theme = await getTheme();
+  return <header data-theme={theme} />;
+}
+```
+
+```text
+`getTheme()` reads `cookies()` (line 4), and it's called inside "use cache" function `Header`. Read the value outside the cached function and pass it as an argument. See https://nextjs.org/docs/messages/next-request-in-use-cache
+```
+
+Read the value in the uncached caller and pass it as an argument, or switch the function to `"use cache: private"`.
+
+### `no-cache-api-outside-cache`
+
+```ts
+"use server";
+import { cacheTag } from "next/cache";
+
+export async function savePost(id: string) {
+  cacheTag(`post-${id}`);
+}
+```
+
+### `require-cachelife-when-nested`
+
+```tsx
+import { cacheLife } from "next/cache";
+
+async function StockTicker() {
+  "use cache";
+  cacheLife("seconds");
+  return <span>{await getPrice()}</span>;
+}
+
+export default async function ProductPage() {
+  "use cache";
+  return <StockTicker />;
+}
+```
+
+The rule suggests adding `cacheLife("seconds")` to keep the page dynamic, or `cacheLife("minutes")` to prerender it.
+
+### `no-invalid-cache-nesting`
+
+```tsx
+async function Recommendations() {
+  "use cache: private";
+  const user = (await cookies()).get("uid");
+  return <List items={await recommend(user)} />;
+}
+
+export default async function Page() {
+  "use cache";
+  return <Recommendations />;
+}
+```
+
+### `valid-invalidation-context`
+
+```ts
+// app/api/posts/route.ts
+import { updateTag } from "next/cache";
+
+export async function POST() {
+  updateTag("posts");
+  return Response.json({ ok: true });
+}
+```
+
+The rule suggests `revalidateTag("posts", { expire: 0 })`, which keeps the immediate expiration in a Route Handler.
+
+### `no-promise-args-to-cache`
+
+```tsx
+export default function Page({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  return <Results query={searchParams} />;
+}
+
+async function Results({ query }: { query: Promise<{ q?: string }> }) {
+  "use cache";
+  const { q } = await query;
+  return <List items={await search(q)} />;
+}
+```
+
+### `require-revalidate-tag-profile`
+
+```ts
+revalidateTag("posts");
+```
+
+The rule suggests `revalidateTag("posts", { expire: 0 })` to keep the current behavior, `revalidateTag("posts", "max")` for stale-while-revalidate, and `updateTag("posts")` inside a Server Action.
+
+### `require-revalidate-path-type`
+
+```ts
+revalidatePath("/blog/[slug]");
+```
+
+### `require-auth-before-revalidate`
+
+```ts
+"use server";
+import { updateTag } from "next/cache";
+
+export async function deletePost(id: string) {
+  await db.posts.delete({ where: { id } });
+  updateTag("posts");
+}
+```
 
 ## Use with coding agents
 
-The project plans to test whether coding agents make these Cache Components mistakes. The planned rule messages are written for agents as well as people: each one says what is wrong, why, how to fix it, and which Next.js docs page to read. The planned agent hooks and install skill are described in the [agent integration plan](documentation/spec.md#agent-integration).
+The messages are written for agents as well as people, and they work with every oxlint output format, including `--format agent`. The [hook recipes](skills/install-cache-components/references/hooks.md) lint each file after the agent edits it and return the findings to the agent, with a warn variant and a block variant for Claude Code.
 
-## Documentation
+## Development
 
-- [Specification](documentation/spec.md): the problem, goals, v0.1 scope, presets, message format, the rule catalog, and agent integration.
-- [Architecture](documentation/architecture.md): package layout, the oxlint API, testing, and the corpus.
-- [Roadmap](documentation/roadmap.md): milestones with acceptance criteria, and risks.
-- [Decisions](documentation/decisions.md): architecture decision records, including the package name and license.
-- [Research](documentation/research.md): the facts behind the design, with sources and dates.
-- [Rules](documentation/rules/): one specification per v0.1 rule, plus the v0.2 backlog.
+```bash
+pnpm install
+pnpm check
+```
 
-## Contributing
+`pnpm check` runs oxfmt, oxlint, the TypeScript checker, every `RuleTester` suite, and the end-to-end tests, which build the package and lint a fixture app with the oxlint CLI and with ESLint. Other scripts:
 
-The project is in the design phase. Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open an issue or a pull request.
+- `pnpm build`: builds `dist/` with tsdown, and checks the package with publint and Are the Types Wrong.
+- `pnpm corpus --limit 60`: clones public repositories from [`documentation/corpus.tsv`](documentation/corpus.tsv) with `git clone --depth 1`, lints them with the `all` preset, and writes the findings to `scripts/corpus/results/`. It does not install dependencies or run code from those repositories.
+- `pnpm next-sync`: compares the Next.js error sources on `canary` with the snapshot in `scripts/next-sync/snapshot/`.
 
-## Security
-
-Report vulnerabilities privately through GitHub private vulnerability reporting. The steps are in [CONTRIBUTING.md](CONTRIBUTING.md#reporting-a-vulnerability). Do not open a public issue for a vulnerability.
-
-The scope covers the plugin code and the published npm package, including supply-chain issues.
+The design, the rule specifications, and the decision records are in [`documentation/`](documentation). Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open an issue or a pull request, and [SECURITY.md](SECURITY.md) to report a vulnerability.
 
 ## License
 
-[MIT](LICENSE). The planned rule messages quote Next.js error text, which is also MIT licensed. The planned attribution file is `THIRD_PARTY_NOTICES.md`, created when the code lands (see [ADR-007](documentation/decisions.md#adr-007-license)).
+[MIT](LICENSE). Rule messages are adapted from Next.js, which is also MIT licensed. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
