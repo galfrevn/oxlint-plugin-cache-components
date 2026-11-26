@@ -31,7 +31,8 @@ The `use cache: remote` docs (nesting table) say: "Remote caches cannot be neste
 1. Build a call and JSX graph between the functions in the file, following helpers that have no directive.
 2. For each inner function I with kind `private`, search its transitive callers. If any caller is a function with scope `public`, `remote`, `custom`, or `unstable`, or has the `build-time-generator` context, report at the call site closest to the outer function.
 3. If `checkRemoteInPrivate` is enabled (default `false`; presets do not set options, so enable it explicitly until the conformance app verifies the case): if I is `remote` and an outer function is `private`, report.
-4. The search stops at functions with their own cache scope and at `'use server'` functions. Each call site is reported once. A function passed to `unstable_cache` by reference (`unstable_cache(load, keys)`) counts as an `unstable_cache` callback.
+4. A `"use cache: private"` directive in an `unstable_cache()` callback itself reports `privateInUnstableCache` on the directive (`test/e2e/app-dir/cache-components-errors`, fixture `use-cache-private-in-unstable-cache`).
+5. The search stops at functions with their own cache scope and at `'use server'` functions. Each call site is reported once. A function passed to `unstable_cache` by reference (`unstable_cache(load, keys)`) counts as an `unstable_cache` callback.
 
 ## Examples
 

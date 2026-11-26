@@ -55,6 +55,13 @@ export const noInvalidCacheNesting: Rule = defineRule({
         const analysis = analyze(context, options);
         const checkRemoteInPrivate = getBoolean(options, "checkRemoteInPrivate", false);
         for (const outer of analysis.units) {
+          if (outer.isUnstableCacheCallback && outer.cacheScope?.kind.type === "private") {
+            context.report({
+              node: outer.cacheScope.directive ?? outer.node,
+              messageId: "privateInUnstableCache",
+              data: { inner: outer.name },
+            });
+          }
           const nesting = outerNesting(outer);
           if (nesting) {
             checkOuter(context, analysis, outer, nesting, checkRemoteInPrivate);

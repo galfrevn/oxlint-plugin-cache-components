@@ -189,5 +189,15 @@ export async function getDashboard() { "use cache: private"; return load(); }`,
         { messageId: "remoteInPrivate", data: { inner: "getCatalog", outer: "getDashboard" } },
       ],
     },
+    {
+      name: "a private directive directly in an unstable_cache callback",
+      code: `
+import { unstable_cache } from "next/cache";
+const getCachedData = unstable_cache(async () => {
+  "use cache: private";
+  return fetch("https://example.com").then((res) => res.json());
+});`,
+      errors: [{ messageId: "privateInUnstableCache", data: { inner: "getCachedData" }, line: 4 }],
+    },
   ],
 });

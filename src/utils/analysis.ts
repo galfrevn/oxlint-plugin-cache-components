@@ -41,6 +41,7 @@ export interface FunctionInfo {
   readonly isUnit: boolean;
   readonly isLocalHelper: boolean;
   readonly isSegmentRoot: boolean;
+  readonly isUnstableCacheCallback: boolean;
   readonly cacheScope: CacheScope | null;
   readonly context: FnContext;
 }
@@ -271,6 +272,7 @@ function analyzeFile(input: AnalysisInput, options: AnalysisOptions): FileAnalys
         file.segment !== null &&
         RENDER_SEGMENTS.has(file.segment) &&
         draft.exportNames.includes("default"),
+      isUnstableCacheCallback: unstableCallbacks.has(draft.node),
       cacheScope: getOwnCacheScope(draft.node, directive, draft.exportNames),
       context: "unknown",
     };

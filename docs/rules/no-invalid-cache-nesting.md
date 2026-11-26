@@ -16,7 +16,7 @@ Disallow cache directive combinations that Next.js rejects.
 | `unstable_cache()` callback | allowed | allowed | error |
 | `generateStaticParams`, `unstable_generateParamMatching` | allowed | allowed | error |
 
-The rule follows calls and JSX in the same file, including calls through helpers without a directive. It reports the call site inside the outer function.
+A `"use cache: private"` directive directly in an `unstable_cache()` callback is reported too. The rule follows calls and JSX in the same file, including calls through helpers without a directive. It reports the call site inside the outer function.
 
 ## Examples
 
