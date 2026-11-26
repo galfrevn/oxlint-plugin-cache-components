@@ -1,4 +1,4 @@
-import type { ESTree, SourceCode, Variable } from "@oxlint/plugins";
+import type { ESTree, Reference, Scope, SourceCode, Variable } from "@oxlint/plugins";
 
 import {
   isAwaited,
@@ -169,9 +169,24 @@ function analyzeFile(input: AnalysisInput, options: AnalysisOptions): FileAnalys
     },
   );
 
+  const referenceIndex = new Map<Scope, Map<Node, Reference>>();
+  const referencesOf = (scope: Scope): Map<Node, Reference> => {
+    let index = referenceIndex.get(scope);
+    if (!index) {
+      index = new Map();
+      for (const reference of scope.references) {
+        if (!index.has(reference.identifier)) {
+          index.set(reference.identifier, reference);
+        }
+      }
+      referenceIndex.set(scope, index);
+    }
+    return index;
+  };
+
   const findVariable = (identifier: Node & { name: string }): Variable | null => {
     const scope = sourceCode.getScope(identifier);
-    const reference = scope.references.find((ref) => ref.identifier === identifier);
+    const reference = referencesOf(scope).get(identifier);
     if (reference) {
       return reference.resolved;
     }
