@@ -12,46 +12,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  version:
-    name: Version pull request
+  state:
+    name: Release state
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write
-      pull-requests: write
+    timeout-minutes: 5
     outputs:
-      has-changesets: ${{ steps.changesets.outputs.has-changesets }}
-      unpublished: ${{ steps.registry.outputs.unpublished }}
+      publish: ${{ steps.state.outputs.publish }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - id: changesets
-        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51
-        with:
-          version-script: pnpm run version-packages
-          commit-message: "chore: release"
-          pr-title: "chore: release"
-      - id: registry
+      - id: state
         run: |
+          pending=$(find .changeset -name '*.md' ! -name README.md | wc -l)
           name=$(node -p "require('./package.json').name")
           version=$(node -p "require('./package.json').version")
-          if npm view "$name@$version" version > /dev/null 2>&1; then
-            echo "unpublished=false" >> "$GITHUB_OUTPUT"
+          if [ "$pending" -gt 0 ]; then
+            echo "::notice::$pending pending changesets. Run pnpm version-packages in a release pull request to publish them."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          elif npm view "$name@$version" version > /dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
           else
-            echo "unpublished=true" >> "$GITHUB_OUTPUT"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
 
   publish:
     name: Publish to npm
-    needs: version
-    if: needs.version.outputs.has-changesets == 'false' && needs.version.outputs.unpublished == 'true'
+    needs: state
+    if: needs.state.outputs.publish == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -85,6 +76,6 @@ jobs:
           fi
       - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51
         env:
-          NPM_CONFIG_PROVENANCE: "true"
+          PNPM_CONFIG_PROVENANCE: "true"
         with:
           publish-script: pnpm run release
