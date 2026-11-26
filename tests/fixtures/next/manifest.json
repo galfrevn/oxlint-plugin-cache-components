@@ -1,0 +1,261 @@
+{
+  "source": {
+    "repository": "vercel/next.js",
+    "commit": "4b97b5e49357077bdf2cd85f8c0660e6a1a3417c",
+    "license": "MIT"
+  },
+  "fixtures": [
+    {
+      "file": "cache-components-errors/app/use-cache-connection/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-connection/page.tsx",
+      "nextjs": "Throws: `connection()` can't be called inside \"use cache\".",
+      "expected": [
+        {
+          "rule": "no-request-api-in-cache",
+          "line": 19
+        }
+      ]
+    },
+    {
+      "file": "cache-components-errors/app/use-cache-cookies/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-cookies/page.tsx",
+      "nextjs": "Throws: `cookies()` can't be read inside \"use cache\".",
+      "expected": [
+        {
+          "rule": "no-request-api-in-cache",
+          "line": 19
+        }
+      ]
+    },
+    {
+      "file": "cache-components-errors/app/use-cache-draft-mode/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-draft-mode/page.tsx",
+      "nextjs": "Throws: `draftMode().enable()` can't be called inside \"use cache\".",
+      "expected": [
+        {
+          "rule": "no-request-api-in-cache",
+          "line": 18
+        }
+      ]
+    },
+    {
+      "file": "cache-components-errors/app/use-cache-headers/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-headers/page.tsx",
+      "nextjs": "Throws: `headers()` can't be read inside \"use cache\".",
+      "expected": [
+        {
+          "rule": "no-request-api-in-cache",
+          "line": 19
+        }
+      ]
+    },
+    {
+      "file": "cache-components-errors/app/use-cache-private-connection/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-private-connection/page.tsx",
+      "nextjs": "Throws: `connection()` can't be called inside \"use cache: private\".",
+      "expected": [
+        {
+          "rule": "no-request-api-in-cache",
+          "line": 24
+        }
+      ]
+    },
+    {
+      "file": "cache-components-errors/app/use-cache-private-in-use-cache/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-private-in-use-cache/page.tsx",
+      "nextjs": "Throws: \"use cache: private\" can't be nested inside \"use cache\".",
+      "expected": [
+        {
+          "rule": "no-invalid-cache-nesting",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "file": "cache-components-errors/app/use-cache-private-in-unstable-cache/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-private-in-unstable-cache/page.tsx",
+      "nextjs": "Throws: \"use cache: private\" can't be used inside unstable_cache().",
+      "expected": [
+        {
+          "rule": "no-invalid-cache-nesting",
+          "line": 22
+        }
+      ]
+    },
+    {
+      "file": "cache-components-errors/app/use-cache-low-expire/nested/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-low-expire/nested/page.tsx",
+      "nextjs": "Fails during prerender: a nested cache with a short expire inside a cache without cacheLife().",
+      "expected": [
+        {
+          "rule": "require-cachelife-when-nested",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "file": "cache-components-errors/app/use-cache-revalidate-0/nested/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-revalidate-0/nested/page.tsx",
+      "nextjs": "Fails during prerender: a nested cache with revalidate: 0 inside a cache without cacheLife().",
+      "expected": [
+        {
+          "rule": "require-cachelife-when-nested",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "file": "cache-components-errors/app/use-cache-cookies-third-party/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-cookies-third-party/page.tsx",
+      "nextjs": "Throws: a third-party package reads `cookies()` inside \"use cache\".",
+      "expected": [],
+      "notReported": "The cookies() call is in another file. The plugin analyzes one file at a time (ADR-005)."
+    },
+    {
+      "file": "cache-components-errors/app/use-cache-low-expire/fast/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-low-expire/fast/page.tsx",
+      "nextjs": "Fails during prerender: a short-lived cache creates a dynamic hole without a Suspense boundary.",
+      "expected": [],
+      "notReported": "Missing Suspense boundaries are not in the v0.1 rule catalog."
+    },
+    {
+      "file": "cache-components-errors/app/use-cache-low-expire/slow/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-low-expire/slow/page.tsx",
+      "nextjs": "Fails during prerender: a short-lived cache creates a dynamic hole without a Suspense boundary.",
+      "expected": [],
+      "notReported": "Missing Suspense boundaries are not in the v0.1 rule catalog."
+    },
+    {
+      "file": "cache-components-errors/app/use-cache-revalidate-0/fast/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-revalidate-0/fast/page.tsx",
+      "nextjs": "Fails during prerender: a revalidate: 0 cache creates a dynamic hole without a Suspense boundary.",
+      "expected": [],
+      "notReported": "Missing Suspense boundaries are not in the v0.1 rule catalog."
+    },
+    {
+      "file": "cache-components-errors/app/use-cache-revalidate-0/slow/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-revalidate-0/slow/page.tsx",
+      "nextjs": "Fails during prerender: a revalidate: 0 cache creates a dynamic hole without a Suspense boundary.",
+      "expected": [],
+      "notReported": "Missing Suspense boundaries are not in the v0.1 rule catalog."
+    },
+    {
+      "file": "cache-components-errors/app/static/page.tsx",
+      "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/static/page.tsx",
+      "nextjs": "Prerenders without errors.",
+      "expected": []
+    },
+    {
+      "file": "use-cache-search-params/app/search-params-used/page.tsx",
+      "source": "test/e2e/app-dir/use-cache-search-params/app/search-params-used/page.tsx",
+      "nextjs": "Throws: `searchParams` can't be read inside \"use cache\".",
+      "expected": [
+        {
+          "rule": "no-request-api-in-cache",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "file": "use-cache-search-params/app/search-params-caught/page.tsx",
+      "source": "test/e2e/app-dir/use-cache-search-params/app/search-params-caught/page.tsx",
+      "nextjs": "Throws: `searchParams` can't be read inside \"use cache\", even when the error is caught.",
+      "expected": [
+        {
+          "rule": "no-request-api-in-cache",
+          "line": 11
+        }
+      ]
+    },
+    {
+      "file": "use-cache-search-params/app/search-params-used-generate-metadata/page.tsx",
+      "source": "test/e2e/app-dir/use-cache-search-params/app/search-params-used-generate-metadata/page.tsx",
+      "nextjs": "Throws: `searchParams` can't be read inside \"use cache\" in generateMetadata.",
+      "expected": [
+        {
+          "rule": "no-request-api-in-cache",
+          "line": 9
+        }
+      ]
+    },
+    {
+      "file": "use-cache-search-params/app/search-params-used-generate-viewport/page.tsx",
+      "source": "test/e2e/app-dir/use-cache-search-params/app/search-params-used-generate-viewport/page.tsx",
+      "nextjs": "Throws: `searchParams` can't be read inside \"use cache\" in generateViewport.",
+      "expected": [
+        {
+          "rule": "no-request-api-in-cache",
+          "line": 9
+        }
+      ]
+    },
+    {
+      "file": "use-cache-search-params/app/search-params-unused/page.tsx",
+      "source": "test/e2e/app-dir/use-cache-search-params/app/search-params-unused/page.tsx",
+      "nextjs": "Works: the cached page declares searchParams and does not read it.",
+      "expected": []
+    },
+    {
+      "file": "use-cache-hanging-inputs/app/bound-args/page.tsx",
+      "source": "test/e2e/app-dir/use-cache-hanging-inputs/app/bound-args/page.tsx",
+      "nextjs": "Times out: a cached closure captures a promise that waits for connection().",
+      "expected": [
+        {
+          "rule": "no-promise-args-to-cache",
+          "line": 18
+        }
+      ]
+    },
+    {
+      "file": "use-cache-hanging-inputs/app/uncached-promise/page.tsx",
+      "source": "test/e2e/app-dir/use-cache-hanging-inputs/app/uncached-promise/page.tsx",
+      "nextjs": "Times out: a promise of uncached data is passed to a cached component.",
+      "expected": [],
+      "notReported": "The promise comes from uncached I/O, not from a request API. The plugin cannot prove that it hangs."
+    },
+    {
+      "file": "use-cache-hanging-inputs/app/uncached-promise-nested/page.tsx",
+      "source": "test/e2e/app-dir/use-cache-hanging-inputs/app/uncached-promise-nested/page.tsx",
+      "nextjs": "Times out: a promise of uncached data is passed to a nested cached component.",
+      "expected": [],
+      "notReported": "The promise comes from uncached I/O, not from a request API. The plugin cannot prove that it hangs."
+    },
+    {
+      "file": "use-cache-hanging-inputs/app/transformed-params/[slug]/page.jsx",
+      "source": "test/e2e/app-dir/use-cache-hanging-inputs/app/transformed-params/[slug]/page.jsx",
+      "nextjs": "Times out: a promise derived from params is passed to a cached component.",
+      "expected": [],
+      "notReported": "The promise is derived from params, which is reported only with checkParams, and only when passed directly."
+    },
+    {
+      "file": "use-cache-private/app/cookies/page.tsx",
+      "source": "test/e2e/app-dir/use-cache-private/app/cookies/page.tsx",
+      "nextjs": "Works: \"use cache: private\" can read cookies().",
+      "expected": []
+    },
+    {
+      "file": "use-cache-private/app/search-params/page.tsx",
+      "source": "test/e2e/app-dir/use-cache-private/app/search-params/page.tsx",
+      "nextjs": "Works: \"use cache: private\" can read searchParams.",
+      "expected": []
+    },
+    {
+      "file": "use-cache-private/app/stale-while-revalidate/page.tsx",
+      "source": "test/e2e/app-dir/use-cache-private/app/stale-while-revalidate/page.tsx",
+      "nextjs": "Works: a private cache with a stale-while-revalidate profile.",
+      "expected": []
+    },
+    {
+      "file": "use-cache-private/app/update-tag/page.tsx",
+      "source": "test/e2e/app-dir/use-cache-private/app/update-tag/page.tsx",
+      "nextjs": "Works: updateTag() in an inline Server Action.",
+      "expected": [
+        {
+          "rule": "require-auth-before-revalidate",
+          "line": 18
+        }
+      ],
+      "note": "The test fixture has no auth check. require-auth-before-revalidate is a heuristic and reports it as a warning."
+    }
+  ]
+}

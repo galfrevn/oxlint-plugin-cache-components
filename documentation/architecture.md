@@ -46,7 +46,7 @@ oxlint-plugin-cache-components/                 # repo
 └── oxlint.config.ts                     # the repo lints itself
 ```
 
-Planned and not built yet: `conformance/next-app/` (task T4.1) and `tests/fixtures/next/` (task T4.2).
+Planned and not built yet: `conformance/next-app/` (task T4.1).
 
 ## `package.json` (sketch)
 

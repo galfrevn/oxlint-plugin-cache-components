@@ -74,7 +74,7 @@ For each rule: implementation, tests from the specification, a public doc at `do
 
 **T4.2 Next fixtures**
 - AC: fixtures imported with attribution, and a comparison test that passes, with each difference justified.
-- Status: open. The corpus covers part of it: `cloudflare/vinext` copies many Next.js fixtures, and the plugin reports them (see `scripts/corpus/triage.md`).
+- Status: done. 28 fixtures from 4 Next.js test directories are in `tests/fixtures/next/`. `tests/e2e/next-fixtures.test.ts` compares the findings with `manifest.json`, which justifies each Next.js error the plugin does not report.
 
 ## M5 — Corpus and false positives (days 10 to 12)
 

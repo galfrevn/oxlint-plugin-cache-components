@@ -12,6 +12,7 @@ What is included:
 - The dynamic route test in `src/rules/require-revalidate-path-type.ts`, which mirrors `isDynamicRoute` in `packages/next/src/shared/lib/router/utils/is-dynamic.ts`.
 - The `cacheLife` profile values in `src/utils/cache-life.ts`, taken from `packages/next/src/server/config-shared.ts`.
 - Snapshots of the two message sources in `scripts/next-sync/snapshot/`, used to detect upstream changes. They are not part of the published package.
+- Test fixtures in `tests/fixtures/next/`, derived from `test/e2e/app-dir/` at commit `4b97b5e49357077bdf2cd85f8c0660e6a1a3417c`, with comment lines removed. They are not part of the published package.
 
 License:
 
