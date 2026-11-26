@@ -115,6 +115,7 @@ export async function getCart() {
 
 - The rule analyzes one file at a time. A helper imported from another file is not checked.
 - A helper that is passed as a callback, instead of being called, is not followed.
+- Through helpers, the rule reports only a request API that always runs once the helper is called: not inside an `if` branch, a ternary, the right side of `&&` or `??`, a loop, a `catch` clause, or a callback, and not after an early `return` or `throw`. A helper that reads `cookies()` only for some arguments is not reported.
 - `searchParams` is checked only in the default export of `page` files inside an App Router directory. Set `settings["cache-components"].appDir` if the app directory is not `app` or `src/app`.
 
 ## Related

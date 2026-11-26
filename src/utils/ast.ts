@@ -184,3 +184,85 @@ export function isPascalCase(name: string): boolean {
 function isNode(value: unknown): value is Node {
   return typeof value === "object" && value !== null && typeof (value as Node).type === "string";
 }
+
+const EXIT_STATEMENTS: ReadonlySet<string> = new Set([
+  "BreakStatement",
+  "ContinueStatement",
+  "ReturnStatement",
+  "ThrowStatement",
+]);
+
+export function runsUnconditionally(node: Node, fn: FunctionNode, keys: VisitorKeys): boolean {
+  let child = node;
+  for (let parent = node.parent; parent; child = parent, parent = parent.parent) {
+    if (parent === fn) {
+      return child === fn.body;
+    }
+    if (!isUnconditionalChild(parent, child)) {
+      return false;
+    }
+    if (STATEMENT_LIST_OWNERS.has(parent.type) && hasExitBefore(parent, child, keys)) {
+      return false;
+    }
+  }
+  return false;
+}
+
+function isUnconditionalChild(parent: Node, child: Node): boolean {
+  switch (parent.type) {
+    case "IfStatement":
+    case "ConditionalExpression":
+      return child === parent.test;
+    case "LogicalExpression":
+      return child === parent.left;
+    case "SwitchStatement":
+      return child === parent.discriminant;
+    case "ForStatement":
+      return child === parent.init;
+    case "ForInStatement":
+    case "ForOfStatement":
+      return child === parent.right;
+    case "TryStatement":
+      return child === parent.block || child === parent.finalizer;
+    case "CallExpression":
+      return !parent.optional || child === parent.callee;
+    case "MemberExpression":
+      return !parent.optional || child === parent.object;
+    case "AssignmentPattern":
+    case "CatchClause":
+    case "DoWhileStatement":
+    case "SwitchCase":
+    case "WhileStatement":
+      return false;
+    default:
+      return !isFunctionNode(parent);
+  }
+}
+
+function hasExitBefore(owner: Node, child: Node, keys: VisitorKeys): boolean {
+  const statements = (owner as { body?: unknown }).body;
+  if (!Array.isArray(statements)) {
+    return false;
+  }
+  for (const statement of statements as Node[]) {
+    if (statement === child) {
+      return false;
+    }
+    if (containsExit(statement, keys)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function containsExit(root: Node, keys: VisitorKeys): boolean {
+  let found = false;
+  walk(root, keys, (node) => {
+    if (found || isFunctionNode(node)) {
+      return SKIP;
+    }
+    found = EXIT_STATEMENTS.has(node.type);
+    return undefined;
+  });
+  return found;
+}

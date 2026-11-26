@@ -2,8 +2,9 @@ import { defineRule } from "@oxlint/plugins";
 import type { Context, ESTree, Rule } from "@oxlint/plugins";
 
 import type { CacheScope, FileAnalysis, FunctionInfo } from "../utils/analysis.ts";
-import { getStaticPropertyName, unwrapExpression } from "../utils/ast.ts";
+import { getStaticPropertyName, runsUnconditionally, unwrapExpression } from "../utils/ast.ts";
 import type { Node } from "../utils/ast.ts";
+import type { CallSite } from "../utils/call-graph.ts";
 import { HTTP_METHODS } from "../utils/contexts.ts";
 import {
   requestApiUrl,
@@ -287,8 +288,11 @@ function checkTransitiveUses(
   if (uses.size === 0) {
     return;
   }
+  const keys = analysis.sourceCode.visitorKeys;
   const isBoundary = (info: FunctionInfo | undefined): boolean =>
     !info || info.directive?.type === "server" || analysis.getCacheScope(info.node) !== null;
+  const isProvablePath = (path: readonly CallSite[]): boolean =>
+    path.slice(1).every((site) => site.caller && runsUnconditionally(site.node, site.caller, keys));
 
   for (const unit of analysis.units) {
     const scope = analysis.getCacheScope(unit.node);
@@ -302,8 +306,12 @@ function checkTransitiveUses(
     for (const { fn, path } of reached) {
       const helper = analysis.functions.get(fn);
       const use =
-        helper && !isBoundary(helper)
-          ? uses.get(helper)?.find((item) => isReportable(item, scope))
+        helper && !isBoundary(helper) && isProvablePath(path)
+          ? uses
+              .get(helper)
+              ?.find(
+                (item) => isReportable(item, scope) && runsUnconditionally(item.node, fn, keys),
+              )
           : undefined;
       const site = path[0];
       if (!helper || !use || !site || reported.has(use.name)) {

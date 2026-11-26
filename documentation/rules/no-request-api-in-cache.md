@@ -39,7 +39,9 @@ According to the `use cache` docs, on a dynamic route the error "can pass `next 
    - For `draftMode`, report only a `MemberExpression` `.enable` or `.disable` on the result, whether it is `(await draftMode()).enable()` or a variable.
 4. **`searchParams`:** in a function with a `CacheScope` that is a segment component (`page`), report if the `searchParams` parameter (destructured, or as `props.searchParams`) is **read**: awaited, accessed as a member, or passed to another function. Declaring it without using it is not reported.
 5. **Route Handler:** in `route-handler` files, if a cached function (for example, a closure defined inside `GET`) references the first parameter of an exported method (`request` or `req`) and accesses `.headers`, `.cookies`, `.nextUrl`, `.url`, `.json`, `.text`, `.formData`, `.body`, or `.signal`, report it.
-6. **Transitive, same file.** For each function F **without** a cache scope that uses a request API, search the call graph for each cached function C that reaches F (`reachableFrom`, depth 10). Report **at the call site inside C** with the `transitive` message. There is one report per (C, API) pair. If the helper reads several APIs, the first one is reported.
+6. **Transitive, same file.** For each function F **without** a cache scope that uses a request API, search the call graph for each cached function C that reaches F (`reachableFrom`, depth 10, through calls and JSX). Report **at the call site inside C** with the `transitive` message. There is one report per (C, API) pair. If the helper reads several APIs, the first one is reported.
+   - The request API call must run unconditionally in F, and every call on the path after the one in C must run unconditionally in its function. A call is conditional when it is inside an `if` or `switch` branch, a ternary branch, the right side of `&&`, `||`, or `??`, a loop body, a `catch` clause, a default parameter value, an optional call, or a callback, or when a `return`, `throw`, `break`, or `continue` can run before it. A `try` block counts as unconditional.
+   - Why: on the corpus run of 2026-11-26, `webkul/odoo-react-nextjs-commerce` produced 8 `transitive` reports, all false positives. Its `odooFetch()` helper reads `cookies()` only inside `if (is_session)`, and the cached callers never pass `is_session`. With this condition, the only remaining `transitive` report on the corpus is a true positive.
 7. Functions with `'use server'` stop the search. A nested action does not inherit the cache scope.
 
 ## Examples
@@ -143,7 +145,7 @@ type Options = [{
 
 ## False-positive risk
 
-Low for direct uses, which are deterministic. Medium for transitive uses, when a helper reads cookies only in a branch that does not run from the cached function. If the corpus shows more than 5% false positives for the `transitive` message, that message ID will require an explicit `checkTransitive: true`.
+Low for direct uses, which are deterministic. Transitive uses had the highest risk: a helper that reads cookies only in a branch that does not run from the cached function. The rule now reports only unconditional uses (see Detection, step 6), which removed every false positive found on the corpus. If the corpus shows more than 5% false positives for the `transitive` message again, that message ID will require an explicit `checkTransitive: true`.
 
 ## Messages
 
@@ -166,6 +168,7 @@ Low for direct uses, which are deterministic. Medium for transitive uses, when a
 - [ ] `searchParams` read in a cached page → error; declared but not read → valid.
 - [ ] `draftMode().isEnabled` → valid; `.enable()` → error.
 - [ ] Transitive, at 1 and 3 levels; cycle A→B→A without an infinite loop.
+- [ ] Transitive through a helper that reads cookies only in a branch, after an early return, or inside a callback → valid; inside a `try` block → error.
 - [ ] Helper called only from an uncached function → valid.
 - [ ] File-level `'use cache'` plus an export that reads cookies → error.
 - [ ] Route Handler: cached closure that reads `request.headers` → error.

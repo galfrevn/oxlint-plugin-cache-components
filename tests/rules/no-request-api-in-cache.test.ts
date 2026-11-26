@@ -155,6 +155,58 @@ export async function GET(request: Request) {
   return Response.json({ agent: request.headers.get("user-agent") });
 }`,
     },
+    {
+      name: "a helper that reads cookies only in a branch",
+      code: `
+import { cookies } from "next/headers";
+async function apiFetch({ query, withSession }: { query: string; withSession?: boolean }) {
+  let session;
+  if (withSession) {
+    session = (await cookies()).get("token")?.value;
+  }
+  return fetch(query, { headers: session ? { Authorization: session } : {} });
+}
+export async function getMenu() {
+  "use cache";
+  return apiFetch({ query: "menu" });
+}`,
+    },
+    {
+      name: "a helper that may return before reading cookies",
+      code: `
+import { cookies } from "next/headers";
+async function readTheme(fallback?: string) {
+  if (fallback) return fallback;
+  return (await cookies()).get("theme")?.value;
+}
+export async function Header() {
+  "use cache";
+  return <header data-theme={await readTheme("dark")} />;
+}`,
+    },
+    {
+      name: "a helper called only in a branch of an intermediate helper",
+      code: `
+import { headers } from "next/headers";
+async function readLocale() { return (await headers()).get("accept-language"); }
+async function resolveLocale(locale?: string) { return locale ?? (await readLocale()); }
+export async function Greeting() {
+  "use cache";
+  return <p>{await resolveLocale("en")}</p>;
+}`,
+    },
+    {
+      name: "cookies read inside a callback of a helper",
+      code: `
+import { cookies } from "next/headers";
+async function readAll(keys: string[]) {
+  return Promise.all(keys.map(async (key) => (await cookies()).get(key)));
+}
+export async function Prefs() {
+  "use cache";
+  return readAll([]);
+}`,
+    },
   ],
   invalid: [
     {
@@ -475,8 +527,9 @@ export async function Shell() {
       code: `
 import { cookies } from "next/headers";
 async function a(depth: number): Promise<string | undefined> {
+  const value = (await cookies()).get("a")?.value;
   if (depth > 0) return b(depth - 1);
-  return (await cookies()).get("a")?.value;
+  return value;
 }
 async function b(depth: number): Promise<string | undefined> {
   return a(depth);
@@ -491,7 +544,7 @@ export async function Cached() {
           data: {
             helper: "a",
             api: "cookies()",
-            line: 5,
+            line: 4,
             scope: '"use cache"',
             fn: "Cached",
             url: USE_CACHE_URL,
@@ -593,6 +646,37 @@ export async function getStats() {
   await server.connection();
 }`,
       errors: [{ messageId: "connectionPrivate" }],
+    },
+    {
+      name: "a helper that reads cookies inside a try block",
+      code: `
+import { cookies } from "next/headers";
+async function Child() {
+  let name;
+  try {
+    name = (await cookies()).get("name")?.value;
+  } catch {
+    name = "nobody";
+  }
+  return <p>{name}</p>;
+}
+export async function Cached() {
+  "use cache";
+  return <Child />;
+}`,
+      errors: [
+        {
+          messageId: "transitive",
+          data: {
+            helper: "Child",
+            api: "cookies()",
+            line: 6,
+            scope: '"use cache"',
+            fn: "Cached",
+            url: USE_CACHE_URL,
+          },
+        },
+      ],
     },
   ],
 });
