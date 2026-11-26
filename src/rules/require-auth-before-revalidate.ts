@@ -69,6 +69,7 @@ const FRAMEWORK_MODULES: ReadonlySet<string> = new Set([
   "next/server",
   "react",
 ]);
+const EFFECT_RUNNERS: ReadonlySet<string> = new Set(["runPromise", "runPromiseExit"]);
 const SECRET_ENV_NAME = /secret|token|key/i;
 const SECRET_IDENTIFIER = /secret/i;
 const SECRET_HEADER = /^(authorization|x-[\w-]*(secret|token|key|signature|hmac)[\w-]*)$/i;
@@ -367,8 +368,25 @@ function isSwallowedByCatch(check: Node, boundary: Node): boolean {
 }
 
 function isAwaitedProjectCall(analysis: FileAnalysis, call: ESTree.CallExpression): boolean {
+  return (
+    isAwaited(call) && (isProjectCall(analysis, call) || isRunnerOfProjectCall(analysis, call))
+  );
+}
+
+function isRunnerOfProjectCall(analysis: FileAnalysis, call: ESTree.CallExpression): boolean {
   const callee = unwrapExpression(call.callee);
-  if (!isAwaited(call) || callee.type !== "Identifier") {
+  const program = call.arguments[0] ? unwrapExpression(call.arguments[0]) : null;
+  return (
+    callee.type === "MemberExpression" &&
+    EFFECT_RUNNERS.has(getStaticPropertyName(callee) ?? "") &&
+    program?.type === "CallExpression" &&
+    isProjectCall(analysis, program)
+  );
+}
+
+function isProjectCall(analysis: FileAnalysis, call: ESTree.CallExpression): boolean {
+  const callee = unwrapExpression(call.callee);
+  if (callee.type !== "Identifier") {
     return false;
   }
   const definition = analysis.findVariable(callee)?.defs[0];
