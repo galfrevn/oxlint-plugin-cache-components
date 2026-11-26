@@ -13,9 +13,14 @@ This rule is a heuristic, so it ships as `warn` in `recommended`. It is not a se
 In a Server Action or a Route Handler, the rule reports the first `revalidateTag()`, `revalidatePath()`, or `updateTag()` call that has no auth check before it. A check counts when it runs earlier in the same block, or in an enclosing block, of the same function:
 
 - A call to a function listed in `authFunctions`. An entry such as `getUser` also matches member calls such as `supabase.auth.getUser()`. An entry such as `auth.api.getSession` matches the end of a member chain.
-- In Route Handlers only: an equality comparison with `process.env.<NAME>` where the name contains `SECRET`, `TOKEN`, or `KEY`; a call such as `verifySignature(body, process.env.WEBHOOK_SECRET)`; or a read of `headers.get("authorization")` or `headers.get("x-...-secret")`.
+- A call to a function whose name contains `auth` (not `author`), `session`, `permission`, `signature`, `webhook`, `verif`, `guard`, or `protect`, such as `requireCronAuth()` or `verifyWebhook()`.
+- A call to a function imported from a module whose path contains `auth` or `session`, or from `@clerk/`, such as `getViewer()` from `@/lib/auth`.
+- A rate limit, such as `ratelimit.limit(ip)` or `checkRateLimit()`. A rate limit bounds abusive invalidation, which is the risk this rule targets.
+- In Route Handlers only: an equality comparison with `process.env.<NAME>`, where the name contains `SECRET`, `TOKEN`, or `KEY`, or with a constant whose name contains `SECRET`; a call such as `verifySignature(body, process.env.WEBHOOK_SECRET)`; or a read of `headers.get("authorization")`, `headers.get("x-...-secret")`, or `headers.get("x-...-hmac-...")`.
 
-The rule skips a function that is wrapped by an entry of `authWrappers`, and a function whose name is listed in `allowPublic`. `refresh()` is not checked, because it does not invalidate server-cached data.
+The rule also stops at an awaited call to a function, imported or declared in the same file, that runs before the invalidation, such as `await deleteWorkspace(slug)`. Data access helpers often check auth inside, and the rule cannot see into another file. Member calls on a client, such as `await db.posts.delete()`, do not count. Set `trustAwaitedCalls` to `false` to require a recognized check instead.
+
+The rule skips a function that is wrapped by an entry of `authWrappers`, or by a wrapper whose name contains `auth`, `admin`, `permission`, `protected`, `private`, `session`, or `secure`, such as `adminProcedure.input(schema).action(fn)`. It also skips a function whose name is listed in `allowPublic`. `refresh()` is not checked, because it does not invalidate server-cached data.
 
 ## Examples
 
@@ -77,7 +82,8 @@ export async function POST(req: Request) {
     {
       "authFunctions": ["assertAdmin"],
       "authWrappers": ["adminAction"],
-      "allowPublic": ["subscribe"]
+      "allowPublic": ["subscribe"],
+      "trustAwaitedCalls": true
     }
   ]
 }
@@ -86,6 +92,7 @@ export async function POST(req: Request) {
 - `authFunctions` (`string[]`): functions whose call counts as an auth check. Entries are added to the defaults: `auth`, `checkAuth`, `currentUser`, `getAuth`, `getCurrentUser`, `getServerSession`, `getSession`, `getUser`, `requireAuth`, `requireSession`, `requireUser`, `validateRequest`, and `verifySession`.
 - `authWrappers` (`string[]`): higher-order functions that wrap the action with auth. Entries are added to the defaults: `withAuth`, `authActionClient.action`, `protectedAction`, and `authenticatedAction`. A dotted entry such as `authActionClient.action` also matches `authActionClient.inputSchema(schema).action(fn)`.
 - `allowPublic` (`string[]`, default `[]`): names of actions or handlers that are public on purpose, such as a newsletter form.
+- `trustAwaitedCalls` (`boolean`, default `true`): treat an awaited call to an imported or local function before the invalidation as a possible auth check.
 - `appDir` (`string[]`, default `["app", "src/app"]`): App Router directories, used to recognize `route` files.
 
 `authFunctions`, `authWrappers`, and `appDir` can also be set once in `settings["cache-components"]`.

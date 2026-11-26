@@ -8,6 +8,7 @@ import {
   getNearestStatement,
   getStaticPropertyName,
   getStringValue,
+  isAwaited,
   isFunctionNode,
   SKIP,
   unwrapExpression,
@@ -18,6 +19,7 @@ import { DATA_SECURITY_URL, ruleDocsUrl } from "../utils/messages.ts";
 import type { NextApi } from "../utils/next-bindings.ts";
 import {
   analyze,
+  getBoolean,
   getOwnStringList,
   getRuleOptions,
   getStringList,
@@ -60,6 +62,13 @@ const AUTH_NAME = /auth(?!or(?!iz|is))|session|permission|signature|webhook|veri
 const AUTH_MODULE = /auth(?!or)|session|^@clerk\//i;
 const RATE_LIMIT_SEGMENT = /rate.?limit|limiter/i;
 const RATE_LIMIT_CALL = /[a-z]Limit$/;
+const AUTH_WRAPPER_SEGMENT = /auth(?!or)|admin|permission|protected|private|session|secure/i;
+const FRAMEWORK_MODULES: ReadonlySet<string> = new Set([
+  "next/cache",
+  "next/navigation",
+  "next/server",
+  "react",
+]);
 const SECRET_ENV_NAME = /secret|token|key/i;
 const SECRET_IDENTIFIER = /secret/i;
 const SECRET_HEADER = /^(authorization|x-[\w-]*(secret|token|key|signature|hmac)[\w-]*)$/i;
@@ -69,6 +78,7 @@ interface AuthOptions {
   readonly authFunctions: readonly string[][];
   readonly authWrappers: readonly string[][];
   readonly allowPublic: readonly string[];
+  readonly trustAwaitedCalls: boolean;
 }
 
 interface CheckContext {
@@ -97,12 +107,13 @@ export const requireAuthBeforeRevalidate: Rule = defineRule({
           authFunctions: STRING_LIST_SCHEMA,
           authWrappers: STRING_LIST_SCHEMA,
           allowPublic: STRING_LIST_SCHEMA,
+          trustAwaitedCalls: { type: "boolean" },
           appDir: STRING_LIST_SCHEMA,
         },
         additionalProperties: false,
       },
     ],
-    defaultOptions: [{ allowPublic: [] }],
+    defaultOptions: [{ allowPublic: [], trustAwaitedCalls: true }],
   },
   createOnce(context) {
     let calls: ESTree.CallExpression[] = [];
@@ -128,6 +139,7 @@ export const requireAuthBeforeRevalidate: Rule = defineRule({
             getStringList(context, options, "authWrappers"),
           ),
           allowPublic: getOwnStringList(options, "allowPublic") ?? [],
+          trustAwaitedCalls: getBoolean(options, "trustAwaitedCalls", true),
         };
         const reported = new Set<FunctionInfo>();
         for (const call of calls) {
@@ -186,8 +198,13 @@ function isUnprotected(
     if (protectedCall || (node !== unit.node && isNestedUnit(analysis, node))) {
       return SKIP;
     }
-    if (node.range[1] <= call.range[0] && isAuthCheck(node, check)) {
+    if (node.range[1] > call.range[0]) {
+      return undefined;
+    }
+    if (isAuthCheck(node, check)) {
       protectedCall = dominates(node, call, unit.node);
+    } else if (options.trustAwaitedCalls && node.type === "CallExpression") {
+      protectedCall = isAwaitedProjectCall(analysis, node);
     }
     return undefined;
   });
@@ -313,10 +330,28 @@ function dominates(check: Node, call: Node, boundary: Node): boolean {
   );
 }
 
+function isAwaitedProjectCall(analysis: FileAnalysis, call: ESTree.CallExpression): boolean {
+  const callee = unwrapExpression(call.callee);
+  if (!isAwaited(call) || callee.type !== "Identifier") {
+    return false;
+  }
+  const definition = analysis.findVariable(callee)?.defs[0];
+  if (definition?.type === "ImportBinding") {
+    const declaration = definition.parent;
+    return (
+      declaration?.type === "ImportDeclaration" && !FRAMEWORK_MODULES.has(declaration.source.value)
+    );
+  }
+  return analysis.resolveFunction(callee) !== null;
+}
+
 function matchesWrapper(wrapper: ESTree.CallExpression, entries: readonly string[][]): boolean {
   const path = getMemberPath(wrapper.callee);
   if (!path) {
     return false;
+  }
+  if (path.some((segment) => AUTH_WRAPPER_SEGMENT.test(segment))) {
+    return true;
   }
   return entries.some((entry) =>
     entry.length === 1

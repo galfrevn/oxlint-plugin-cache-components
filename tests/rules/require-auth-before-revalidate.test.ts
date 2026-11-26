@@ -197,6 +197,53 @@ export async function POST(request: Request) {
   revalidateTag("products", { expire: 0 });
 }`,
     },
+    {
+      name: "an awaited data access helper may check auth",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { revalidatePath } from "next/cache";
+import { deleteWorkspace } from "@/data/workspaces";
+export async function deleteWorkspaceAction(slug: string) {
+  const result = await deleteWorkspace(slug);
+  if (result.error) return result;
+  revalidatePath("/workspaces");
+}`,
+    },
+    {
+      name: "an awaited local helper may check auth",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+async function loadOwnedPost(id: string) { return db.posts.find(id); }
+export async function publish(id: string) {
+  await loadOwnedPost(id);
+  updateTag("posts");
+}`,
+    },
+    {
+      name: "a procedure whose name indicates auth",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { revalidatePath } from "next/cache";
+export const grantCourse = superAdminProcedure.input(schema).action(async ({ input }) => {
+  revalidatePath("/admin/users");
+});`,
+    },
+    {
+      name: "a permission-based action client",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+export const updateProject = permissionActionClient({ project: ["update"] })
+  .inputSchema(schema)
+  .action(async ({ parsedInput }) => {
+    updateTag(\`project-\${parsedInput.id}\`);
+  });`,
+    },
   ],
   invalid: [
     {
@@ -327,6 +374,7 @@ export const save = withLogging(async () => {
     {
       name: "an author lookup is not an auth check",
       filename: ACTIONS,
+      options: [{ trustAwaitedCalls: false }],
       code: `
 "use server";
 import { updateTag } from "next/cache";
@@ -335,6 +383,46 @@ export async function publish() {
   const author = await getAuthor();
   await getAuthors();
   updateTag("posts");
+}`,
+      errors: [{ messageId: "missingAuth" }],
+    },
+    {
+      name: "awaited member calls on an imported client are not auth checks",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+import { db } from "@/lib/db";
+export async function deletePost(id: string) {
+  await db.posts.delete({ where: { id } });
+  updateTag("posts");
+}`,
+      errors: [{ messageId: "missingAuth" }],
+    },
+    {
+      name: "synchronous validation and global fetch are not auth checks",
+      filename: ROUTE,
+      code: `
+import { revalidateTag } from "next/cache";
+import { z } from "zod";
+export async function POST(request: Request) {
+  const { tag } = z.object({ tag: z.string() }).parse(await request.json());
+  await fetch("https://example.com/hook");
+  revalidateTag(tag, "max");
+}`,
+      errors: [{ messageId: "missingAuth" }],
+    },
+    {
+      name: "awaited helpers are not trusted when trustAwaitedCalls is false",
+      filename: ACTIONS,
+      options: [{ trustAwaitedCalls: false }],
+      code: `
+"use server";
+import { revalidatePath } from "next/cache";
+import { deleteWorkspace } from "@/data/workspaces";
+export async function deleteWorkspaceAction(slug: string) {
+  await deleteWorkspace(slug);
+  revalidatePath("/workspaces");
 }`,
       errors: [{ messageId: "missingAuth" }],
     },
