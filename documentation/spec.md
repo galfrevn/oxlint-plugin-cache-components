@@ -144,15 +144,15 @@ Example (A1, transitive):
 
 ### Global options
 
-In v0.1 these options are set per rule, because it is **Unverified** whether `context.settings` reaches JS plugins (see `research.md`). If confirmed, they are added as `settings["cache-components"]`, and per-rule options take precedence.
+Options that several rules read can be set once in `settings["cache-components"]`. `context.settings` reaches JS plugins (**Verified** with the oxlint CLI, 2026-11-26). A rule option takes precedence over the shared setting. A malformed setting throws a `TypeError` that names the key.
 
 | Option | Rules | Default | Purpose |
 |---|---|---|---|
 | `requestApis: string[]` | A1, A6 | `[]` | Third-party functions that read cookies or headers and should be treated as request APIs: `auth` (Auth.js), `currentUser` (Clerk), etc. Format: `"auth"` or `"next-auth:auth"` (module:export). |
 | `shortProfiles: string[]` | A3 | `["seconds"]` | Custom `cacheLife` profiles whose `expire` is under 5 minutes or whose `revalidate` is 0. |
-| `authFunctions: string[]` | C1 | see rule | Functions whose call counts as an auth check. |
-| `authWrappers: string[]` | C1 | see rule | Higher-order functions that wrap the action with auth (`withAuth`, `authActionClient.action`). |
-| `appDir: string[]` | A5, C1 | `["app", "src/app"]` | App Router roots, used to recognize `route.ts`, `page.tsx`, etc. |
+| `authFunctions: string[]` | C1 | see rule | Functions whose call counts as an auth check. Added to the defaults. |
+| `authWrappers: string[]` | C1 | see rule | Higher-order functions that wrap the action with auth (`withAuth`, `authActionClient.action`). Added to the defaults. |
+| `appDir: string[]` | all rules that classify files; per-rule option on A5 and C1 | `["app", "src/app"]` | App Router roots, used to recognize `route.ts`, `page.tsx`, etc. An entry matches as a sequence of path segments anywhere in the path relative to the working directory. `proxy.ts` and `middleware.ts` are recognized at the working directory, in `src/`, or next to a configured app directory. |
 
 ### Product non-goals
 
@@ -218,7 +218,7 @@ The two complement each other: the skill installs the lint rules and the hook, a
 
 ### 2. Output format
 
-- oxlint has `--format agent` (**Verified** in the oxlint CLI docs, 2026-11-26). **Unverified:** the exact output format, and whether it includes suggestions.
+- oxlint has `--format agent` (**Verified** in the oxlint CLI docs, 2026-11-26). It prints one line per diagnostic, `file:line:column: severity plugin(rule): message`, and does not include suggestions (**Verified** with oxlint 1.95.0, 2026-11-26).
 - Rule messages are already self-contained (what, why, how, and a URL), so they work with `unix`, `default`, or `agent` output.
 - In CI, use `--format github`, which leaves annotations on the pull request.
 
@@ -284,10 +284,10 @@ After editing any file under `app/` or files containing "use cache", run `npx ox
 
 ### 4. Installation skill (distribution on skills.sh)
 
-The plugin is distributed as an agent skill on skills.sh, in addition to npm. `dmmulroy/anti-slop` is distributed **as a skill**, and skills.sh is from Vercel. The skill is published from this repository at `skills/install-cache-components/SKILL.md` and installs with:
+The plugin is distributed as an agent skill on skills.sh, in addition to npm. `dmmulroy/anti-slop` is distributed **as a skill**, and skills.sh is from Vercel. The skill is published from this repository at `skills/install-cache-components/SKILL.md`, with the hook recipes in `skills/install-cache-components/references/hooks.md`, and installs with:
 
 ```bash
-npx skills add <owner>/oxlint-cache-components --skill install-cache-components
+npx skills add galfrevn/oxlint-plugin-cache-components --skill install-cache-components
 ```
 
 The skill tells the agent to:
