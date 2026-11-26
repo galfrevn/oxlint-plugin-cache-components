@@ -46,7 +46,7 @@ oxlint-plugin-cache-components/                 # repo
 └── oxlint.config.ts                     # the repo lints itself
 ```
 
-Planned and not built yet: `conformance/next-app/` (task T4.1).
+The conformance app is in `conformance/`: `next-app/` holds the Next.js app and its lockfile, `cases/<case>/` holds the `app/` files and `case.json` of each case, and `scripts/conformance.mjs` runs them.
 
 ## `package.json` (sketch)
 
@@ -283,7 +283,7 @@ tester.run("cache-components/no-request-api-in-cache", noRequestApiInCache, {
 
 `conformance/next-app/` is a Next app pinned to **16.4.x** with `cacheComponents: true`. It has one route for each invalid example of each rule.
 
-- Script `pnpm conformance`: runs `next build && next start`, then one request to each route. It captures stderr and the response.
+- Script `pnpm conformance`: for each case, copies its `app/` into the app, runs `next build`, and, when `case.json` has a request, runs `next start` and sends it. It captures the output and the status, lints the case with the `recommended` preset, and writes `conformance/RESULTS.md`. The cases are JavaScript, because Next.js type-checks TypeScript with the `typescript` API, which TypeScript 7 does not provide.
 - Criterion: each invalid example of a `recommended` rule produces the error or warning its specification describes (compared with a substring of Next's message). Each valid example works.
 - This settles the semantic questions marked **Unverified**: `connection()` in private, `params` without `await`, remote inside private, and introspection of `children`.
 - Runs in CI weekly, and whenever the Next version is bumped.

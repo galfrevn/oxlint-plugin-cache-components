@@ -14,7 +14,7 @@ Runtime errors (`use-cache-messages.ts`):
 - "`"use cache: private"` can't be used inside `unstable_cache()` because `unstable_cache()` uses a shared cache that can't contain private request data." (`createUseCachePrivateInsideUnstableCacheError`)
 - "`"use cache: private"` needs an active request, so it can't be used during `${functionName}` or other build-time contexts." (`createUseCachePrivateOutsideRequestContextError`)
 
-The `use cache: remote` docs (nesting table) say: "Remote caches cannot be nested inside private caches" and "Private caches cannot be nested inside remote caches". For remote inside private, no error was found in the code. **Unverified**: check it in the conformance app. Until then, that case is behind an option.
+The `use cache: remote` docs (nesting table) say: "Remote caches cannot be nested inside private caches" and "Private caches cannot be nested inside remote caches". For remote inside private, no error was found in the code, and the conformance app confirmed that it builds and renders on Next.js 16.4.6 (case `valid-remote-in-private`, **Verified** 2026-11-26). The case stays behind an option, off by default, because only the docs list it as invalid.
 
 ## Matrix (outer → inner)
 

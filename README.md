@@ -105,7 +105,7 @@ Each rule has a page in [`docs/rules`](docs/rules) with its examples, options, a
 | [`require-cachelife-when-nested`](docs/rules/require-cachelife-when-nested.md) | A cached function without `cacheLife()` that calls or renders a short-lived cached function, which fails during prerender. | error |
 | [`no-invalid-cache-nesting`](docs/rules/no-invalid-cache-nesting.md) | `"use cache: private"` inside a public cache, inside `unstable_cache()`, or reached from `generateStaticParams`. | error |
 | [`valid-invalidation-context`](docs/rules/valid-invalidation-context.md) | `revalidateTag()`, `revalidatePath()`, `updateTag()`, or `refresh()` in a cached function, during render, in a build-time generator, in Proxy, in a Client Component, or `updateTag()` and `refresh()` outside a Server Action. | error |
-| [`no-promise-args-to-cache`](docs/rules/no-promise-args-to-cache.md) | `searchParams`, `cookies()`, or `headers()` passed to a cached function without `await`, which hangs the build for 50 seconds. | error |
+| [`no-promise-args-to-cache`](docs/rules/no-promise-args-to-cache.md) | `cookies()`, `headers()`, or a captured request promise passed to a cached function without `await`, which hangs the build for about 50 seconds. | error |
 | [`require-revalidate-tag-profile`](docs/rules/require-revalidate-tag-profile.md) | `revalidateTag(tag)` with one argument, which Next.js deprecates. | warn |
 | [`require-revalidate-path-type`](docs/rules/require-revalidate-path-type.md) | `revalidatePath()` with a dynamic route and no `type`, which does nothing. | warn |
 | [`require-auth-before-revalidate`](docs/rules/require-auth-before-revalidate.md) | Cache invalidation in a Server Action or Route Handler with no auth check, secret check, or rate limit before it. | warn |
@@ -116,7 +116,7 @@ Eight rules map to an error or warning that Next.js already produces. `require-a
 
 The rules analyze one file at a time. They resolve Next.js APIs by following the import binding from `next/headers`, `next/server`, `next/cache`, or `react`, so renamed imports and namespace imports are recognized and a local variable with the same name is not. They follow calls and JSX between functions in the same file. A helper imported from another file is not followed, and a function whose context the file cannot prove, such as an exported helper with no callers in the file, is not reported. The rules do not use type information.
 
-The false-positive review on 61 public repositories that use Cache Components is in [`scripts/corpus/triage.md`](scripts/corpus/triage.md).
+Each rule is confirmed against a real Next.js 16.4.6 app with `next build` and `next start`: see [`conformance/RESULTS.md`](conformance/RESULTS.md). The false-positive review on 61 public repositories that use Cache Components is in [`scripts/corpus/triage.md`](scripts/corpus/triage.md).
 
 ## Violation examples
 
@@ -206,14 +206,15 @@ The rule suggests `revalidateTag("posts", { expire: 0 })`, which keeps the immed
 ### `no-promise-args-to-cache`
 
 ```tsx
-export default function Page({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  return <Results query={searchParams} />;
+import { cookies } from "next/headers";
+
+export default function Page() {
+  return <Prefs store={cookies()} />;
 }
 
-async function Results({ query }: { query: Promise<{ q?: string }> }) {
+async function Prefs({ store }: { store: ReturnType<typeof cookies> }) {
   "use cache";
-  const { q } = await query;
-  return <List items={await search(q)} />;
+  return <p>{(await store).get("theme")?.value}</p>;
 }
 ```
 
@@ -259,6 +260,7 @@ pnpm check
 - `pnpm build`: builds `dist/` with tsdown, and checks the package with publint and Are the Types Wrong.
 - `pnpm corpus --limit 60`: clones public repositories from [`documentation/corpus.tsv`](documentation/corpus.tsv) with `git clone --depth 1`, lints them with the `all` preset, and writes the findings to `scripts/corpus/results/`. It does not install dependencies or run code from those repositories.
 - `pnpm next-sync`: compares the Next.js error sources on `canary` with the snapshot in `scripts/next-sync/snapshot/`.
+- `pnpm conformance`: builds each case in `conformance/cases/` with Next.js, requests it when needed, and checks that Next.js fails as expected and that the plugin reports the matching rule.
 
 The design, the rule specifications, and the decision records are in [`documentation/`](documentation). Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open an issue or a pull request, and [SECURITY.md](SECURITY.md) to report a vulnerability.
 

@@ -37,4 +37,5 @@ pnpm typecheck
 pnpm build         # tsdown -> dist/ (ESM + d.ts), checked with publint and Are the Types Wrong
 pnpm corpus        # runs the plugin over the corpus; results stay local
 pnpm next-sync     # compares Next.js canary error messages with the snapshot
+pnpm conformance   # confirms each rule against a real Next.js build
 ```

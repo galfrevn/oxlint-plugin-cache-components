@@ -70,7 +70,7 @@ For each rule: implementation, tests from the specification, a public doc at `do
 **T4.1 Conformance app**
 - `conformance/next-app` on Next 16.4.x, with one route per invalid example of the v0.1 rules.
 - AC: `pnpm conformance` confirms the error or warning for each `recommended` rule. The items marked **Unverified** are settled in the docs: `connection()` in private, `params` without `await`, remote inside private, arrow functions with a directive, and custom directives.
-- Status: open.
+- Status: done, except custom directives, which need a `cacheHandlers` setup. 22 cases pass on Next.js 16.4.6 (`conformance/RESULTS.md`), and the results changed two defaults ([ADR-010](decisions.md#adr-010-defaults-settled-by-the-conformance-app)).
 
 **T4.2 Next fixtures**
 - AC: fixtures imported with attribution, and a comparison test that passes, with each difference justified.

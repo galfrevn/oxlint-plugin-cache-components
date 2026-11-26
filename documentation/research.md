@@ -105,12 +105,17 @@ Primary code sources: `packages/next/src/server/use-cache/use-cache-messages.ts`
 - `https://nextjs.org/docs/app/api-reference/functions/unstable_cache`
 - `https://nextjs.org/docs/app/api-reference/directives/use-cache-private`
 
+**Verified** in the conformance app (`conformance/RESULTS.md`) on 2026-11-26, with Next.js 16.4.6, `cacheComponents: true`, and `partialPrefetching: true`:
+
+- Async arrow functions with `'use cache'` in the body work.
+- `draftMode().enable()` inside `use cache: private` throws, with the same message as in `use cache`.
+- `connection()` inside `use cache: private` throws at request time. The code wins over the `connection` docs page.
+- `use cache: remote` inside `use cache: private` builds and renders. Only the docs table lists it as invalid.
+- Passing `params` or `searchParams` without `await` to a cached component inside `<Suspense>` does not time out. Passing `cookies()` without `await`, or capturing a promise that waits for `connection()`, fails after about 50 seconds with "A `"use cache"` function took too long during prerendering". The docs still quote the older "Filling a cache during prerender timed out" message.
+
 **Unverified:**
 - Whether custom directives (`'use cache: <handler>'`, defined in `cacheHandlers`) behave like the public `use cache`.
-- Whether async arrow functions with `'use cache'` in the body are supported.
-- Whether `draftMode().enable()` inside `use cache: private` also fails.
 - The exact error thrown when introspecting `children` or calling a function passed as an argument.
-- Whether passing `params` without `await` to a cached function always causes a timeout, or depends on `generateStaticParams`.
 
 ## 5. The RCE advisory of 2026-10-14
 

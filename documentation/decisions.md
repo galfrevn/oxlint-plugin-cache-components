@@ -210,3 +210,24 @@ Task T5.3 asked for a corpus run under 2 times the time of oxlint with its defau
 - (+) The target measures what the rules cost. The run of 2026-11-26 took 13.9 s, against 17.9 s for the empty plugin (0.78 times) and 4.8 s for the default config.
 - (−) The total time still depends on oxlint's bridge. When oxlint sends only the nodes a rule needs, this target should be compared with the default config again.
 
+## ADR-010: Defaults settled by the conformance app
+
+Status: Accepted
+Date: 2026-11-26
+
+### Context
+
+The conformance app (`conformance/`, task T4.1) builds each case with Next.js 16.4.6 and `cacheComponents: true`, and requests it with `next start` when the error happens at request time. Several rule specs had **Unverified** cases that only a real build could settle.
+
+### Decision
+
+- `no-promise-args-to-cache` reports `searchParams` only with `checkParams`, like `params`. Both build and render when passed inside `<Suspense>`, so a default report would be a false positive. `cookies()`, `headers()`, `draftMode()`, request API helpers, and captured request promises stay on by default: they time out.
+- `no-request-api-in-cache` reports `draftMode().enable()` and `disable()` inside `"use cache: private"`, which throws.
+- `no-invalid-cache-nesting` keeps `checkRemoteInPrivate` off. Remote inside private builds and renders.
+- The conformance workflow runs weekly, and on pull requests that change the rules or the conformance cases. Dependabot bumps the Next.js version of the app.
+
+### Consequences
+
+- (+) Every rule in `recommended` maps to an error or warning that the conformance app reproduces, as ADR-006 requires.
+- (−) The results hold for the Next.js version in `conformance/next-app/package.json`. A Next.js upgrade can change them, which the weekly run and Dependabot surface.
+

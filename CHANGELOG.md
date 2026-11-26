@@ -11,7 +11,7 @@ Initial version.
 - `require-cachelife-when-nested`: a cached function without `cacheLife()` that calls a short-lived cached function.
 - `no-invalid-cache-nesting`: `"use cache: private"` inside a public cache, `unstable_cache()`, or a build-time generator.
 - `valid-invalidation-context`: `revalidateTag()`, `revalidatePath()`, `updateTag()`, and `refresh()` where Next.js rejects them.
-- `no-promise-args-to-cache`: request-time promises passed to cached functions without `await`.
+- `no-promise-args-to-cache`: request-time promises passed to, or captured by, cached functions without `await`.
 - `require-revalidate-tag-profile`: `revalidateTag()` with one argument.
 - `require-revalidate-path-type`: `revalidatePath()` with a dynamic route and no `type`.
 - `require-auth-before-revalidate`: cache invalidation in a Server Action or Route Handler without an auth check.
