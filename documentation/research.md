@@ -27,11 +27,20 @@ Sources:
 | CLI | `--format`: `default`, `agent`, `github`, `gitlab`, `json`, `junit`, `sarif`, `stylish`, `unix`, `checkstyle`. Fixes: `--fix`, `--fix-suggestions`, `--fix-dangerously`. Also `--quiet`, `--deny-warnings`, `--max-warnings`, `-c/--config`, and `--type-aware`. |
 | Adoption | oxlint passed 50M weekly downloads and added 10M in three weeks (**Secondary source**: a post on X, 2026-11-18). tsrs, the Rust port of TypeScript that is now part of oxc, reached 5M weekly downloads in 23 days. |
 
+**Verified** with oxlint 1.95.0 and `RuleTester` from `oxlint/plugins-dev`, 2026-11-26:
+
+- `context.settings` reaches JS plugins, including from `.oxlintrc.json`. The plugin reads `settings["cache-components"]`.
+- oxc serializes a directive as an `ExpressionStatement` with a `directive` string property, at the start of `Program.body` or of a function body. Only prologue strings get the property.
+- Every rule in a file receives the same `Program` object, so a `WeakMap` keyed by `sourceCode.ast` shares the analysis between rules. A new file gets a new object. `src/utils/analysis.ts` also checks the text and file name before it reuses an entry.
+- `context.filename` is absolute, and `context.cwd` is the working directory of the oxlint process, not the directory of the config file.
+- `RuleTester` accepts `languageOptions.parserOptions.lang = "tsx"` and a `filename` per test case. With a `filename`, the language comes from its extension.
+- Scope analysis resolves an imported identifier to a `Variable` whose definition is an `ImportBinding`. `sourceCode.getDeclaredVariables(specifier)` returns the variable and its references, including through aliases and namespaces. JSX identifiers are not references in every runtime, so the plugin resolves them by name through the scope chain.
+- A rule that throws produces a diagnostic without `code` whose message starts with `Error running JS plugin.`. The corpus runner counts them.
+- With `before` returning `false`, a rule costs almost nothing for that file. A rule whose visitors run on a file costs the AST transfer to JavaScript (see §7).
+- oxlint discovers nested config files. In a directory, `.oxlintrc.json` and `oxlint.config.ts` cannot both exist. `--disable-nested-config` turns the discovery off.
+
 **Unverified:**
-- Whether `context.settings` reaches JS plugins (needed for global options).
 - Whether `.oxlintrc.json` can `extends` an npm package or only file paths.
-- The exact way oxc serializes directives in ESTree (an `ExpressionStatement` with a `directive` property is expected).
-- Whether a `WeakMap` keyed by `sourceCode.ast` can share analysis between rules in the same file.
 
 ## 2. Trend: deterministic and anti-slop rules on oxlint
 
@@ -61,6 +70,9 @@ Primary code sources: `packages/next/src/server/use-cache/use-cache-messages.ts`
 
 | API | Verified fact | Source |
 |---|---|---|
+| Directive syntax | The SWC transform accepts exactly `"use cache"` or `"use cache: <kind>"`, with one space after the colon. `"use cache:remote"` and `"use cache : remote"` are compile errors (`MisspelledDirective`). A file-level `"use cache"` wraps every export that is, or might be, a function. | `crates/next-custom-transforms/src/transforms/server_actions.rs`, canary, 2026-11-26 |
+| `next/cache` aliases | `next/cache` still exports `unstable_cacheLife` and `unstable_cacheTag`. They log a deprecation error once and call `cacheLife` and `cacheTag`. | `packages/next/cache.js`, canary, 2026-11-26 |
+| `isDynamicRoute` | `revalidatePath` warns when `isDynamicRoute(path)` is true. In strict mode it tests `/\/\[[^/]+\](?=\/|$)/`, so a segment such as `post-[id]` is not dynamic. | `packages/next/src/shared/lib/router/utils/is-dynamic.ts`, canary, 2026-11-26 |
 | `use cache` | Async functions or components. At file level, every export becomes cached. Arguments and return values must be serializable, and argument serialization is stricter. Class instances, functions (except pass-through), Symbols, WeakMap, WeakSet, and URL are not supported. Non-serializable values can be accepted "as long as you don't introspect them". | nextjs.org/docs/app/api-reference/directives/use-cache |
 | Request-time APIs | `cookies()`, `headers()`, and `searchParams` cannot be used, "and the restriction follows the call stack". "On a dynamically rendered route… it can pass `next build` and fail under `next start`." | Same as above |
 | Build hang | Runtime data promises created outside the boundary (params, searchParams, cookies()) make the build wait and time out after 50 seconds: "Filling a cache during prerender timed out…". | Same as above |
@@ -113,3 +125,17 @@ Primary code sources: `packages/next/src/server/use-cache/use-cache-messages.ts`
 - `vercel/next.js` is marked `fixtures-only`. Its tests use invalid patterns on purpose, so it cannot measure false positives. It is a source of invalid cases: `test/e2e/app-dir/cache-components-errors`, `cache-components-request-apis`, `cache-components-route-handler-errors`, `cache-components-segment-configs`, `use-cache-*`, and `test/development/app-dir/use-cache-errors`. Next is MIT-licensed, so fixtures can be derived with attribution.
 - The most-starred repositories are cloudflare/vinext (9.4k), pqoqubbw/icons (8.3k), cursor/community-plugins (4.0k), kokonut-labs/kokonutui (2.4k), alchemy-run/alchemy (2.1k), CaliCastle/cali.so (2.0k), wotschofsky/domain-digger (1.6k), sanity-io/next-sanity (955), and opennextjs/opennextjs-netlify (853).
 - The full list is in `corpus.tsv`.
+
+## 7. Performance
+
+Measured on 2026-11-26 on an Apple Silicon laptop with Node.js 26.7.0 and oxlint 1.95.0, using `/usr/bin/time` and the corpus runner (`pnpm corpus --limit 60 --baseline`). Each configuration lints the same checkouts with `--disable-nested-config`. "Empty JS plugin" is a plugin with one rule whose only visitor is an empty `Program` function.
+
+| Target | oxlint default config | Empty JS plugin | This plugin (`all`) |
+|---|---|---|---|
+| `cloudflare/vinext` (6,085 files), median of 3 | 0.22 s | 0.91 s | 1.02 s |
+| 61 corpus repositories, one oxlint process each | 5.2 s | 20.0 s | 14.2 s |
+
+- The JS plugin bridge dominates. An empty JS plugin is about 4 times slower than the default config, because oxlint transfers every AST to JavaScript.
+- This plugin is faster than the empty plugin across the corpus, because each rule's `before` hook returns `false` for files without `next/` or `use cache`, and then the AST is not transferred.
+- The roadmap target (task T5.3: under 2 times the default config) is not reachable for any JS plugin on oxlint 1.95.0. Against an empty JS plugin, the overhead of the rules is about 10% on `cloudflare/vinext`.
+- The oxlint team plans to send only the nodes a rule needs to JavaScript (see §1, "Performance"). That change would reduce the bridge cost without changes here.
