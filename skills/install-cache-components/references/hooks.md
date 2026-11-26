@@ -1,6 +1,6 @@
 # Post-edit hook recipes
 
-Each recipe runs oxlint on the file the agent just edited and returns the findings to the agent. Hook formats change often. Check the harness reference before installing a recipe.
+Each recipe runs oxlint on the file the agent edited and returns the findings to the agent. Hook formats change often. Check the harness reference before installing a recipe.
 
 ## Claude Code
 
