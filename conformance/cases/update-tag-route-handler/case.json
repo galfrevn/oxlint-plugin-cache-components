@@ -1,0 +1,9 @@
+{
+  "expect": "error",
+  "rule": "valid-invalidation-context",
+  "output": "updateTag can only be called from within a Server Action",
+  "request": {
+    "method": "POST",
+    "path": "/api/posts"
+  }
+}

@@ -59,6 +59,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.build.json",
     "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test",
     "corpus": "pnpm run build && node scripts/corpus/run.mjs",
+    "conformance": "pnpm --dir conformance/next-app install --frozen-lockfile && pnpm run build && node scripts/conformance.mjs",
     "next-sync": "node scripts/next-sync.mjs",
     "smoke": "node scripts/smoke.mjs",
     "changeset": "changeset",

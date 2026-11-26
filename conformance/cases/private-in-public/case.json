@@ -1,0 +1,5 @@
+{
+  "expect": "error",
+  "rule": "no-invalid-cache-nesting",
+  "output": "can't be nested inside `\"use cache\"`"
+}

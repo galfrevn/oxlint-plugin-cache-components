@@ -1,0 +1,9 @@
+{
+  "expect": "error",
+  "rule": "no-request-api-in-cache",
+  "output": "`connection()` can't be called inside `\"use cache: private\"`",
+  "request": {
+    "method": "GET",
+    "path": "/"
+  }
+}

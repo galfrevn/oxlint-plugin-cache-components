@@ -1,0 +1,5 @@
+{
+  "expect": "error",
+  "rule": "require-cachelife-when-nested",
+  "output": "with a short `expire` (under 5 minutes)"
+}

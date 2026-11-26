@@ -1,0 +1,9 @@
+{
+  "expect": "warning",
+  "rule": "require-revalidate-path-type",
+  "output": "the \"type\" parameter is missing",
+  "request": {
+    "method": "POST",
+    "path": "/api/posts"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "expect": "error",
+  "rule": "no-promise-args-to-cache",
+  "output": "function took too long during prerendering"
+}

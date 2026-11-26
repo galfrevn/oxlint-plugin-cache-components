@@ -1,0 +1,9 @@
+{
+  "expect": "error",
+  "rule": "no-request-api-in-cache",
+  "output": "`draftMode().enable()` can't be called inside",
+  "request": {
+    "method": "GET",
+    "path": "/"
+  }
+}

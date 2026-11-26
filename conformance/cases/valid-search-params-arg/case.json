@@ -1,0 +1,7 @@
+{
+  "expect": "valid",
+  "request": {
+    "method": "GET",
+    "path": "/?q=hello"
+  }
+}

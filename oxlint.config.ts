@@ -11,7 +11,13 @@ export default defineConfig({
     node: true,
     es2024: true,
   },
-  ignorePatterns: ["dist/**", "coverage/**", ".corpus/**", "tests/fixtures/**"],
+  ignorePatterns: [
+    "dist/**",
+    "coverage/**",
+    ".corpus/**",
+    "tests/fixtures/**",
+    "conformance/next-app/**",
+  ],
   rules: {
     "eslint/no-console": "error",
     "eslint/no-warning-comments": "error",

@@ -1,0 +1,9 @@
+{
+  "expect": "warning",
+  "rule": "require-revalidate-tag-profile",
+  "output": "\"revalidateTag\" without the second argument is now deprecated",
+  "request": {
+    "method": "POST",
+    "path": "/api/posts"
+  }
+}

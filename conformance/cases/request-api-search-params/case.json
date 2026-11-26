@@ -1,0 +1,5 @@
+{
+  "expect": "error",
+  "rule": "no-request-api-in-cache",
+  "output": "`searchParams` can't be read inside `\"use cache\"`"
+}

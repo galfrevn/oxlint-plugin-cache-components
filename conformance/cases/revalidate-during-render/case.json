@@ -1,0 +1,5 @@
+{
+  "expect": "error",
+  "rule": "valid-invalidation-context",
+  "output": "can't be called during render"
+}

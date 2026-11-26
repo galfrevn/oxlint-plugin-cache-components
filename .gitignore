@@ -5,6 +5,8 @@ coverage/
 .turbo/
 .corpus/
 scripts/corpus/results/
+conformance/next-app/app/
+conformance/next-app/.next/
 
 # Local environment
 .env
