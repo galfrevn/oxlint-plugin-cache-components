@@ -1,3 +1,4 @@
+import { findEnclosingFunction } from "./ast.ts";
 import type { Node } from "./ast.ts";
 
 export interface Segment {
@@ -7,6 +8,7 @@ export interface Segment {
 
 export interface CodePathTracker {
   readonly visitors: {
+    readonly onCodePathStart: (codePath: unknown, node?: Node) => void;
     readonly onCodePathSegmentStart: (segment: unknown) => void;
     readonly onCodePathSegmentEnd: () => void;
     readonly onUnreachableCodePathSegmentStart: (segment: unknown) => void;
@@ -15,6 +17,7 @@ export interface CodePathTracker {
   record(node: Node): void;
   reset(): void;
   dominates(checks: readonly Node[], target: Node): boolean;
+  dominatesFrom(checks: readonly Node[], target: Node, root: Node): boolean;
 }
 
 export function createCodePathTracker(): CodePathTracker {
@@ -26,43 +29,62 @@ export function createCodePathTracker(): CodePathTracker {
   const leave = (): void => {
     stack.pop();
   };
+  const record = (node: Node): void => {
+    const segment = stack.at(-1);
+    if (segment) {
+      segments.set(node, segment);
+    }
+  };
+  const dominates = (checks: readonly Node[], target: Node): boolean => {
+    const targetSegment = segments.get(target);
+    if (!targetSegment) {
+      return false;
+    }
+    const checked = new Set<Segment>();
+    for (const check of checks) {
+      const segment = segments.get(check);
+      if (segment === targetSegment && check.range[1] <= target.range[0]) {
+        return true;
+      }
+      if (segment && segment !== targetSegment) {
+        checked.add(segment);
+      }
+    }
+    return (
+      targetSegment.prevSegments.length > 0 &&
+      !reachesEntryUnchecked(targetSegment.prevSegments, checked)
+    );
+  };
 
   return {
     visitors: {
+      onCodePathStart: (_codePath, node) => {
+        if (node) {
+          record(node);
+        }
+      },
       onCodePathSegmentStart: enter,
       onCodePathSegmentEnd: leave,
       onUnreachableCodePathSegmentStart: enter,
       onUnreachableCodePathSegmentEnd: leave,
     },
-    record(node) {
-      const segment = stack.at(-1);
-      if (segment) {
-        segments.set(node, segment);
-      }
-    },
+    record,
     reset() {
       stack.length = 0;
       segments = new Map();
     },
-    dominates(checks, target) {
-      const targetSegment = segments.get(target);
-      if (!targetSegment) {
-        return false;
-      }
-      const checked = new Set<Segment>();
-      for (const check of checks) {
-        const segment = segments.get(check);
-        if (segment === targetSegment && check.range[1] <= target.range[0]) {
+    dominates,
+    dominatesFrom(checks, target, root) {
+      for (
+        let current: Node | null = target;
+        current && current !== root;
+        current = findEnclosingFunction(current)
+      ) {
+        if (dominates(checks, current)) {
           return true;
         }
-        if (segment && segment !== targetSegment) {
-          checked.add(segment);
-        }
       }
-      return (
-        targetSegment.prevSegments.length > 0 &&
-        !reachesEntryUnchecked(targetSegment.prevSegments, checked)
-      );
+      return false;
     },
   };
 }

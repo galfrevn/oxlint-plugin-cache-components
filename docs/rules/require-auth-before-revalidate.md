@@ -10,7 +10,7 @@ Every exported Server Action and every Route Handler is reachable by a direct re
 
 This rule is a heuristic, so it ships as `warn` in `recommended`. It is not a security control and does not prove that an endpoint is safe.
 
-In a Server Action or a Route Handler, the rule reports the first `revalidateTag()`, `revalidatePath()`, or `updateTag()` call that has no auth check before it. A check counts when it runs on every path from the start of the function to the call, which the rule decides with oxlint's code path analysis. A check in only one branch, in a loop that may not run, or in a `try` block whose `catch` clause continues does not count:
+In a Server Action or a Route Handler, the rule reports the first `revalidateTag()`, `revalidatePath()`, or `updateTag()` call that has no auth check before it. A check counts when it runs on every path from the start of the function to the call, which the rule decides with oxlint's code path analysis. When the call is inside a callback, such as `.then(() => updateTag("posts"))` or `Effect.sync(() => updateTag("posts"))`, a check also counts when it runs on every path to the point where the callback is created. A check in only one branch, in a loop that may not run, or in a `try` block whose `catch` clause continues does not count:
 
 - A call to a function listed in `authFunctions`. An entry such as `getUser` also matches member calls such as `supabase.auth.getUser()`. An entry such as `auth.api.getSession` matches the end of a member chain.
 - A call to a function whose name contains `auth` (not `author`), `session`, `permission`, `signature`, `webhook`, `verif`, `guard`, or `protect`, such as `requireCronAuth()` or `verifyWebhook()`.

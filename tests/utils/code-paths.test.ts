@@ -24,6 +24,19 @@ function recordIn(tracker: CodePathTracker, owner: Segment, node: Node): Node {
   return node;
 }
 
+function fakeFunction(start: number, end: number, parent: Node | null): Node {
+  return { type: "ArrowFunctionExpression", range: [start, end], parent } as unknown as Node;
+}
+
+function fakeChild(start: number, parent: Node): Node {
+  return { range: [start, start + 1], parent } as unknown as Node;
+}
+
+function startCallback(tracker: CodePathTracker, owner: Segment, callback: Node): void {
+  tracker.visitors.onCodePathSegmentStart(owner);
+  tracker.visitors.onCodePathStart(null, callback);
+}
+
 function chainOfBranches(entry: Segment, count: number): Segment {
   let join = entry;
   for (let index = 0; index < count; index += 1) {
@@ -103,5 +116,29 @@ describe("createCodePathTracker", () => {
     const target = recordIn(tracker, entry, fakeNode(10));
     tracker.reset();
     expect(tracker.dominates([check], target)).toBe(false);
+  });
+  it("accepts a check that runs before a callback is created", () => {
+    const tracker = createCodePathTracker();
+    const root = fakeFunction(0, 100, null);
+    const entry = segment("entry");
+    const check = recordIn(tracker, entry, fakeChild(1, root));
+    const callback = fakeFunction(20, 40, root);
+    startCallback(tracker, entry, callback);
+    const target = recordIn(tracker, segment("callback"), fakeChild(30, callback));
+    expect(tracker.dominates([check], target)).toBe(false);
+    expect(tracker.dominatesFrom([check], target, root)).toBe(true);
+  });
+
+  it("rejects a check that runs on one branch before a callback is created", () => {
+    const tracker = createCodePathTracker();
+    const root = fakeFunction(0, 100, null);
+    const entry = segment("entry");
+    const consequent = segment("consequent", [entry]);
+    const join = segment("join", [entry, consequent]);
+    const check = recordIn(tracker, consequent, fakeChild(1, root));
+    const callback = fakeFunction(20, 40, root);
+    startCallback(tracker, join, callback);
+    const target = recordIn(tracker, segment("callback"), fakeChild(30, callback));
+    expect(tracker.dominatesFrom([check], target, root)).toBe(false);
   });
 });

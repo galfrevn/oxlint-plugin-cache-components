@@ -225,7 +225,7 @@ function isUnprotected(
     return false;
   }
   const checks = summary.checks.filter((node) => node.range[1] <= call.range[0]);
-  return !codePaths.dominates(checks, call);
+  return !codePaths.dominatesFrom(checks, call, unit.node);
 }
 
 function collectUnitChecks(unit: FunctionInfo, check: CheckContext): UnitChecks {
