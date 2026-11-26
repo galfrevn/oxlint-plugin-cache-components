@@ -84,5 +84,7 @@ jobs:
             exit 1
           fi
       - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51
+        env:
+          NPM_CONFIG_PROVENANCE: "true"
         with:
           publish-script: pnpm run release

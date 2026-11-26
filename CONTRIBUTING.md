@@ -63,12 +63,9 @@ Releases go through GitHub Actions, and only the maintainer can approve one.
 
 1. On every push to `main`, the `Release` workflow collects the changesets into a `chore: release` pull request that bumps the version and updates `CHANGELOG.md`.
 2. Merging that pull request leaves a version in `package.json` that is not on npm yet. The `publish` job then waits for approval in the `npm` environment.
-3. After approval, the job runs `pnpm check`, publishes with provenance through npm trusted publishing (OIDC), and creates the git tag and the GitHub release.
+3. After approval, the job runs `pnpm check`, publishes with provenance, and creates the git tag and the GitHub release.
 
-Setup for the maintainer:
-
-1. The first version needs a token, because npm only allows trusted publishing for an existing package. On npmjs.com, create a granular access token with read and write access to packages, then store it in the `npm` environment with `gh secret set NPM_TOKEN --env npm`, and approve the pending `Release` run.
-2. After the first version is on npm, add a trusted publisher in the package settings on npmjs.com: this repository, the workflow `release.yml`, and the environment `npm`. Then delete the token with `gh secret delete NPM_TOKEN --env npm`. Later releases authenticate with OIDC.
+The `publish` job authenticates with an `NPM_TOKEN` secret in the `npm` environment when it exists, and with npm trusted publishing otherwise. To use trusted publishing, add a trusted publisher in the package settings on npmjs.com with this repository, the workflow `release.yml`, and the environment `npm`, then delete the token with `gh secret delete NPM_TOKEN --env npm`.
 
 ## Pull requests
 
