@@ -59,22 +59,29 @@ export function isAwaited(node: Node): boolean {
 
 export function childNodes(node: Node, keys: VisitorKeys): Node[] {
   const children: Node[] = [];
+  forEachChild(node, keys, (child) => {
+    children.push(child);
+  });
+  return children;
+}
+
+function forEachChild(node: Node, keys: VisitorKeys, visit: (child: Node) => void): void {
+  const record = node as unknown as Record<string, unknown>;
   for (const key of keys[node.type] ?? []) {
     if (TYPE_ONLY_KEYS.has(key)) {
       continue;
     }
-    const value = (node as unknown as Record<string, unknown>)[key];
+    const value = record[key];
     if (Array.isArray(value)) {
       for (const item of value) {
         if (isNode(item)) {
-          children.push(item);
+          visit(item);
         }
       }
     } else if (isNode(value)) {
-      children.push(value);
+      visit(value);
     }
   }
-  return children;
 }
 
 export const SKIP: unique symbol = Symbol("skip");
@@ -85,22 +92,28 @@ export function walk(
   enter: (node: Node) => typeof SKIP | void,
   leave: (node: Node) => void = () => {},
 ): void {
-  const stack: { node: Node; leaving: boolean }[] = [{ node: root, leaving: false }];
-  for (let entry = stack.pop(); entry; entry = stack.pop()) {
-    if (entry.leaving) {
-      leave(entry.node);
+  const nodes: Node[] = [root];
+  const leaving: boolean[] = [false];
+  const children: Node[] = [];
+  const collect = (child: Node): void => {
+    children.push(child);
+  };
+  while (nodes.length > 0) {
+    const node = nodes.pop() as Node;
+    if (leaving.pop()) {
+      leave(node);
       continue;
     }
-    if (enter(entry.node) === SKIP) {
+    if (enter(node) === SKIP) {
       continue;
     }
-    stack.push({ node: entry.node, leaving: true });
-    const children = childNodes(entry.node, keys);
+    nodes.push(node);
+    leaving.push(true);
+    children.length = 0;
+    forEachChild(node, keys, collect);
     for (let index = children.length - 1; index >= 0; index -= 1) {
-      const child = children[index];
-      if (child) {
-        stack.push({ node: child, leaving: false });
-      }
+      nodes.push(children[index] as Node);
+      leaving.push(false);
     }
   }
 }
