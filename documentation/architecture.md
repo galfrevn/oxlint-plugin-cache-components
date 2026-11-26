@@ -270,7 +270,7 @@ tester.run("cache-components/no-request-api-in-cache", noRequestApiInCache, {
 
 ### 2. Fixtures derived from Next.js
 
-- Copy invalid cases from the tests of `vercel/next.js` (MIT) into `tests/fixtures/next/<folder>/`, with an attribution header and the source commit:
+- Copy invalid cases from the tests of `vercel/next.js` (MIT) into `tests/fixtures/next/<folder>/`, with the source commit and attribution in `tests/fixtures/next/manifest.json` and `THIRD_PARTY_NOTICES.md`:
   - `test/e2e/app-dir/cache-components-errors`
   - `test/e2e/app-dir/cache-components-request-apis`
   - `test/e2e/app-dir/cache-components-route-handler-errors`
@@ -339,6 +339,9 @@ Review each finding in the local results: `repo | file:line | rule | messageId |
 - `test` matrix: the minimum supported oxlint version (1.95.0) and `latest`.
 - ESLint 9 and 10 smoke test: loads `flat/recommended` and lints 3 fixtures ([ADR-002](decisions.md#adr-002-eslint-compatibility-as-a-secondary-target-best-effort)).
 - Runtime matrix: builds on Node.js 24, then runs `scripts/smoke.mjs` with the oxlint CLI on Node.js 20.19, 22.12, 24, and 26.
+- `release.yml`: Changesets opens the `chore: release` pull request. When the version in `package.json` is not on npm, a `publish` job in the protected `npm` environment (required reviewer, `main` only) publishes with provenance through npm trusted publishing and creates the tag and the GitHub release.
+- `codeql.yml` analyzes the TypeScript code and the workflows. `dependency-review.yml` blocks pull requests that add dependencies with known vulnerabilities of moderate severity or higher. Dependabot updates actions and npm packages weekly, with a 7-day cooldown.
+- Hardening: every action is pinned to a commit SHA, checkouts do not persist credentials, each job declares its own permissions and a timeout, and matrix values reach shell commands through environment variables.
 - Weekly `next-sync` job: downloads `use-cache-messages.ts` and `revalidate.ts` from `vercel/next.js@canary`, compares them with `scripts/next-sync/snapshot/`, and opens an issue if they changed. This surfaces candidate new rules and detects outdated messages.
 
 ### Corpus list

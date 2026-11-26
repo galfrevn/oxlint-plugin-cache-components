@@ -55,6 +55,20 @@ Keep pull requests small. Each rule change includes tests for its invalid and va
 
 Write commit messages in the imperative mood, for example `docs: add contributing guide`. Use a Conventional Commits prefix. The preferred prefixes are `feat`, `fix`, `docs`, and `chore`.
 
+## Changesets
+
+A pull request that changes the published package adds a changeset: run `pnpm changeset`, choose patch, minor, or major, and describe the change for users. Documentation, tests, and CI changes do not need one.
+
+## Releasing
+
+Releases go through GitHub Actions, and only the maintainer can approve one.
+
+1. On every push to `main`, the `Release` workflow collects the changesets into a `chore: release` pull request that bumps the version and updates `CHANGELOG.md`.
+2. Merging that pull request leaves a version in `package.json` that is not on npm yet. The `publish` job then waits for approval in the `npm` environment.
+3. After approval, the job runs `pnpm check`, publishes with provenance through npm trusted publishing (OIDC), and creates the git tag and the GitHub release.
+
+Setup for the maintainer: on npmjs.com, add a trusted publisher for this repository with the workflow `release.yml` and the environment `npm`. npm only allows that for an existing package, so the first version needs an `NPM_TOKEN` secret in the `npm` environment. Remove the secret once trusted publishing is configured.
+
 ## Pull requests
 
 Link the issue that the pull request resolves. Keep the description short: what changes, and why. Before you ask for review, check that tests pass, docs are updated, and the [writing checklist](#checklist-before-you-open-a-pull-request) holds.

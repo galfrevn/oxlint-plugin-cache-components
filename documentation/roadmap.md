@@ -14,7 +14,7 @@ Tasks are meant to be taken **in order** by an agent, one per PR. Each has accep
 **T0.2 CI**
 - Workflows from the CI section of `architecture.md`, without the corpus.
 - AC: CI passes with the oxlint matrix.
-- Status: done. `.github/workflows/ci.yml` also runs ESLint 9 and 10, and Node.js 20.19 to 26.
+- Status: done. `.github/workflows/ci.yml` also runs ESLint 9 and 10, and Node.js 20.19 to 26. `release.yml`, `codeql.yml`, `dependency-review.yml`, and Dependabot cover releases and security.
 
 **T0.3 License and third-party notices**
 - License: MIT ([ADR-007](decisions.md#adr-007-license)).
@@ -113,7 +113,7 @@ For each rule: implementation, tests from the specification, a public doc at `do
 **T6.5 Release**
 - Changeset, `v0.1.0`, and tag. **The maintainer publishes to npm.**
 - AC: `npm pack` contains only `dist`, `docs`, `THIRD_PARTY_NOTICES.md`, `LICENSE`, and the README.
-- Status: open for the maintainer. `scripts/check-package.mjs` checks the package contents in CI. The package also includes `CHANGELOG.md`. The version is 0.1.0, and the tag and the npm release are left to the maintainer.
+- Status: ready for the maintainer. `scripts/check-package.mjs` checks the package contents in CI, and the package also includes `CHANGELOG.md`. The `Release` workflow publishes 0.1.0 after the maintainer approves it in the `npm` environment (see "Releasing" in `CONTRIBUTING.md`).
 
 **T6.6 Community files** before the repository goes public: `SECURITY.md` and `CODE_OF_CONDUCT.md` (their text is in the last two sections of `CONTRIBUTING.md`), issue forms for bugs and rule proposals, and a pull request template.
 - AC: GitHub shows the security policy and the code of conduct in the repository's community profile.
