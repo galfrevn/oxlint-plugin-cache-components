@@ -104,6 +104,10 @@ const OPAQUE_CALLBACK_APIS: ReadonlySet<string> = new Set([
 ]);
 const MAX_ALIAS_DEPTH = 4;
 
+export function isCacheBoundary(info: FunctionInfo | undefined): boolean {
+  return !info || info.cacheScope !== null || info.directive?.type === "server";
+}
+
 export function getFileAnalysis(input: AnalysisInput, options: AnalysisOptions): FileAnalysis {
   const program = input.sourceCode.ast;
   const key = JSON.stringify([options.appDirs, options.requestApis]);

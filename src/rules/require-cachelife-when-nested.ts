@@ -1,6 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { Context, ESTree, Rule, Suggestion } from "@oxlint/plugins";
 
+import { isCacheBoundary } from "../utils/analysis.ts";
 import type { FileAnalysis, FunctionInfo } from "../utils/analysis.ts";
 import { classifyCacheLife, parseCacheLifeCall } from "../utils/cache-life.ts";
 import { isPublicCacheKind } from "../utils/directives.ts";
@@ -99,9 +100,9 @@ function check(
 
   const lifeCallsOf = (unit: FunctionInfo): ESTree.CallExpression[] => {
     const helpers = analysis.callGraph
-      .reachableFrom(unit.node, { stopAt: (fn) => isBoundary(analysis.functions.get(fn)) })
+      .reachableFrom(unit.node, { stopAt: (fn) => isCacheBoundary(analysis.functions.get(fn)) })
       .map(({ fn }) => analysis.functions.get(fn))
-      .filter((info): info is FunctionInfo => !isBoundary(info));
+      .filter((info): info is FunctionInfo => !isCacheBoundary(info));
     return [unit, ...helpers].flatMap((info) => ownCalls.get(info) ?? []);
   };
 
@@ -122,7 +123,7 @@ function check(
     }
     const reached = analysis.callGraph.reachableFrom(outer.node, {
       maxDepth: input.followHelpers ? undefined : 1,
-      stopAt: (fn) => isBoundary(analysis.functions.get(fn)),
+      stopAt: (fn) => isCacheBoundary(analysis.functions.get(fn)),
     });
     for (const { fn } of reached) {
       const inner = analysis.functions.get(fn);
@@ -134,10 +135,6 @@ function check(
       }
     }
   }
-}
-
-function isBoundary(info: FunctionInfo | undefined): boolean {
-  return !info || info.cacheScope !== null || info.directive?.type === "server";
 }
 
 function findShortLife(
