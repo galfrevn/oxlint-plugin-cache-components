@@ -61,6 +61,13 @@ export const RENDER_SEGMENTS: ReadonlySet<string> = new Set([
 const CLIENT_SEGMENTS: ReadonlySet<string> = new Set(["error", "global-error"]);
 const PROXY_FILES: ReadonlySet<string> = new Set(["middleware", "proxy"]);
 const SOURCE_EXTENSION = /\.[cm]?[jt]sx?$/;
+const SPECIAL_STEMS: ReadonlySet<string> = new Set([
+  "route",
+  ...RENDER_SEGMENTS,
+  ...CLIENT_SEGMENTS,
+  ...PROXY_FILES,
+]);
+const OTHER_FILE: FileInfo = { kind: "other", segment: null };
 
 export function classifyFile(
   filename: string,
@@ -73,6 +80,9 @@ export function classifyFile(
   }
   if (fileDirective?.type === "server") {
     return { kind: "server-actions", segment: null };
+  }
+  if (!SPECIAL_STEMS.has(basenameOf(filename).replace(SOURCE_EXTENSION, ""))) {
+    return OTHER_FILE;
   }
 
   const segments = relativeSegments(filename, cwd);
@@ -105,6 +115,10 @@ export function toSegments(path: string): string[] {
     .replaceAll("\\", "/")
     .split("/")
     .filter((segment) => segment.length > 0 && segment !== ".");
+}
+
+function basenameOf(filename: string): string {
+  return filename.slice(Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\")) + 1);
 }
 
 function relativeSegments(filename: string, cwd: string): string[] {

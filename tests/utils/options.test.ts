@@ -55,7 +55,15 @@ describe("getBoolean", () => {
 
 describe("textMentions", () => {
   it("checks whether any marker appears in the source text", () => {
-    expect(textMentions('import { cookies } from "next/headers";', ["next/headers"])).toBe(true);
+    expect(
+      textMentions('"use cache";\nimport { cookies } from "next/headers";', ["next/headers"]),
+    ).toBe(true);
     expect(textMentions("const a = 1;", ["next/headers", "use cache"])).toBe(false);
+  });
+
+  it("rejects files that mention neither next/cache nor use cache", () => {
+    expect(textMentions('import { cookies } from "next/headers";', ["next/headers"])).toBe(false);
+    expect(textMentions('import Link from "next/link";', ["next/link"])).toBe(false);
+    expect(textMentions('import { cacheTag } from "next/cache";', ["cacheTag"])).toBe(true);
   });
 });

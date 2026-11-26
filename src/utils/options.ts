@@ -76,21 +76,33 @@ export function analyze(context: Context, options: RuleOptions): FileAnalysis {
   );
 }
 
-const RELEVANCE_MARKERS: readonly string[] = ["next/", "use cache"];
+const RELEVANT_TEXT = /next\/cache|use cache/;
 
 let mentionText = "";
 let mentionCache = new Map<string, boolean>();
+let relevance: boolean | null = null;
 
 export function textMentions(text: string, ...groups: readonly (readonly string[])[]): boolean {
-  return textMentionsAll(text, RELEVANCE_MARKERS, ...groups);
+  return isRelevant(text) && textMentionsAll(text, ...groups);
 }
 
 export function textMentionsAll(text: string, ...groups: readonly (readonly string[])[]): boolean {
+  useText(text);
+  return groups.every((needles) => needles.some((needle) => mentions(text, needle)));
+}
+
+function isRelevant(text: string): boolean {
+  useText(text);
+  relevance ??= RELEVANT_TEXT.test(text);
+  return relevance;
+}
+
+function useText(text: string): void {
   if (text !== mentionText) {
     mentionText = text;
     mentionCache = new Map();
+    relevance = null;
   }
-  return groups.every((needles) => needles.some((needle) => mentions(text, needle)));
 }
 
 function mentions(text: string, needle: string): boolean {
