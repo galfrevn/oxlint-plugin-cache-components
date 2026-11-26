@@ -271,11 +271,11 @@ pnpm check
 `pnpm check` runs oxfmt, oxlint, the TypeScript checker, every `RuleTester` suite, and the end-to-end tests, which build the package and lint a fixture app with the oxlint CLI and with ESLint. Other scripts:
 
 - `pnpm build`: builds `dist/` with tsdown, and checks the package with publint and Are the Types Wrong.
-- `pnpm corpus --limit 60`: clones public repositories from [`documentation/corpus.tsv`](documentation/corpus.tsv) with `git clone --depth 1`, lints them with the `all` preset, and writes the findings to `scripts/corpus/results/`. It does not install dependencies or run code from those repositories.
+- `pnpm corpus --limit 60`: clones public repositories from [`scripts/corpus/repositories.tsv`](scripts/corpus/repositories.tsv) with `git clone --depth 1`, lints them with the `all` preset, and writes the findings to `scripts/corpus/results/`. It does not install dependencies or run code from those repositories.
 - `pnpm next-sync`: compares the Next.js error sources on `canary` with the snapshot in `scripts/next-sync/snapshot/`.
 - `pnpm conformance`: builds each case in `conformance/cases/` with Next.js, requests it when needed, and checks that Next.js fails as expected and that the plugin reports the matching rule.
 
-The design, the rule specifications, and the decision records are in [`documentation/`](documentation). Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open an issue or a pull request, and [SECURITY.md](SECURITY.md) to report a vulnerability.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before you open an issue or a pull request, and [SECURITY.md](SECURITY.md) to report a vulnerability.
 
 ## License
 

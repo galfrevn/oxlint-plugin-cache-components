@@ -15,6 +15,3 @@ conformance/next-app/.next/
 
 # OS files
 .DS_Store
-
-# Private planning notes. Never commit this folder.
-documentation/internal/

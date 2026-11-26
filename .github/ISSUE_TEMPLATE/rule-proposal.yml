@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Every rule must map to Next.js behavior that already exists: an error, a warning, or a call that silently does nothing. See ADR-006 in `documentation/decisions.md`.
+        Every rule must map to Next.js behavior that already exists: an error, a warning, or a call that silently does nothing. See "Proposing a new rule" in `CONTRIBUTING.md`.
   - type: textarea
     id: behavior
     attributes:
