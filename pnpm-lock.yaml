@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       '@oxlint/plugins':
-        specifier: ^1.95.0
+        specifier: ^1.63.0
         version: 1.95.0
     devDependencies:
       '@arethetypeswrong/core':
