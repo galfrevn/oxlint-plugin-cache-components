@@ -1,0 +1,88 @@
+{
+  "name": "oxlint-plugin-cache-components",
+  "version": "0.1.0",
+  "description": "Lint rules that catch Next.js Cache Components errors before next start, for oxlint and ESLint.",
+  "keywords": [
+    "oxlint",
+    "oxlint-plugin",
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin",
+    "nextjs",
+    "next",
+    "use-cache",
+    "cache-components",
+    "cachelife",
+    "cachetag",
+    "revalidatetag",
+    "server-actions"
+  ],
+  "homepage": "https://github.com/galfrevn/oxlint-plugin-cache-components#readme",
+  "bugs": "https://github.com/galfrevn/oxlint-plugin-cache-components/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/galfrevn/oxlint-plugin-cache-components.git"
+  },
+  "license": "MIT",
+  "author": "Valentin Galfre",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./configs": {
+      "types": "./dist/configs.d.ts",
+      "import": "./dist/configs.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "lint": "oxlint --deny-warnings",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.build.json",
+    "prepack": "pnpm run build"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "packageManager": "pnpm@11.21.0",
+  "peerDependencies": {
+    "eslint": ">=9.0.0",
+    "oxlint": ">=1.95.0"
+  },
+  "peerDependenciesMeta": {
+    "eslint": {
+      "optional": true
+    },
+    "oxlint": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@oxlint/plugins": "^1.95.0"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/core": "0.18.5",
+    "@types/node": "22.20.5",
+    "@vitest/coverage-v8": "5.1.1",
+    "eslint": "10.15.0",
+    "oxfmt": "0.80.0",
+    "oxlint": "1.95.0",
+    "publint": "0.3.25",
+    "tsdown": "0.23.7",
+    "typescript": "7.0.2",
+    "vitest": "5.1.1"
+  }
+}
