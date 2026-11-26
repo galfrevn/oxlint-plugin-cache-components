@@ -21,7 +21,7 @@ import {
   STRING_LIST_SCHEMA,
   textMentions,
 } from "../utils/options.ts";
-import { findPropRead } from "../utils/props.ts";
+import { findPropReads, SEARCH_PARAMS_RECEIVERS } from "../utils/props.ts";
 
 const RULE_NAME = "no-request-api-in-cache";
 const CACHE_MARKERS = ["use cache", "unstable_cache"];
@@ -230,17 +230,19 @@ function checkSearchParams(context: Context, analysis: FileAnalysis): void {
     return;
   }
   for (const unit of analysis.units) {
-    const scope = analysis.getCacheScope(unit.node);
-    if (!unit.isSegmentRoot || !scope || scope.kind.type === "private") {
+    if (!unit.exportNames.some((name) => SEARCH_PARAMS_RECEIVERS.has(name))) {
       continue;
     }
-    const read = findPropRead(analysis, unit, "searchParams");
-    if (read) {
-      context.report({
-        node: read,
-        messageId: "searchParams",
-        data: { scope: scopeLabel(scope.kind), url: requestApiUrl(scope.kind) },
-      });
+    for (const read of findPropReads(analysis, unit, "searchParams")) {
+      const scope = analysis.getCacheScope(read);
+      if (scope && scope.kind.type !== "private") {
+        context.report({
+          node: read,
+          messageId: "searchParams",
+          data: { scope: scopeLabel(scope.kind), url: requestApiUrl(scope.kind) },
+        });
+        break;
+      }
     }
   }
 }

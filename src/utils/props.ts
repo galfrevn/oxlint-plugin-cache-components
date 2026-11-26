@@ -2,32 +2,33 @@ import type { FileAnalysis, FunctionInfo } from "./analysis.ts";
 import { getStaticPropertyName } from "./ast.ts";
 import type { Node } from "./ast.ts";
 
-export function findPropRead(
-  analysis: FileAnalysis,
-  unit: FunctionInfo,
-  prop: string,
-): Node | null {
+export const SEARCH_PARAMS_RECEIVERS: ReadonlySet<string> = new Set([
+  "default",
+  "generateMetadata",
+  "generateViewport",
+]);
+
+export function findPropReads(analysis: FileAnalysis, unit: FunctionInfo, prop: string): Node[] {
   const param = unit.node.params[0];
   if (!param) {
-    return null;
+    return [];
   }
   if (param.type === "Identifier") {
-    const variable = analysis.findVariable(param);
-    for (const reference of variable?.references ?? []) {
+    const references = analysis.findVariable(param)?.references ?? [];
+    return references.flatMap((reference) => {
       const parent = reference.identifier.parent;
-      if (
-        parent.type === "MemberExpression" &&
+      return parent.type === "MemberExpression" &&
         parent.object === reference.identifier &&
         getStaticPropertyName(parent) === prop
-      ) {
-        return parent;
-      }
-    }
-    return null;
+        ? [parent]
+        : [];
+    });
   }
   const binding = findDestructuredBinding(param, prop);
-  const variable = binding ? analysis.findVariable(binding) : null;
-  return variable?.references.find((reference) => reference.isRead())?.identifier ?? null;
+  const references = binding ? (analysis.findVariable(binding)?.references ?? []) : [];
+  return references
+    .filter((reference) => reference.isRead())
+    .map((reference) => reference.identifier);
 }
 
 export function findDestructuredBinding(

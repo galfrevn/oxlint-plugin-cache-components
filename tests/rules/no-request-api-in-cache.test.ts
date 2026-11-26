@@ -207,6 +207,15 @@ export async function Prefs() {
   return readAll([]);
 }`,
     },
+    {
+      name: "searchParams read in generateMetadata of a layout is out of scope",
+      filename: "app/layout.tsx",
+      code: `
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
+  "use cache";
+  return { title: (await searchParams).title };
+}`,
+    },
   ],
   invalid: [
     {
@@ -677,6 +686,44 @@ export async function Cached() {
           },
         },
       ],
+    },
+    {
+      name: "searchParams read in a cached generateMetadata",
+      filename: "app/search/page.tsx",
+      code: `
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
+  "use cache";
+  const title = (await searchParams).title;
+  return { title };
+}
+export default function Page() {
+  return null;
+}`,
+      errors: [{ messageId: "searchParams", line: 4 }],
+    },
+    {
+      name: "searchParams read in a cached generateViewport",
+      filename: "app/search/page.tsx",
+      code: `
+export async function generateViewport(props: { searchParams: Promise<Record<string, string>> }) {
+  "use cache";
+  return { themeColor: (await props.searchParams).color };
+}`,
+      errors: [{ messageId: "searchParams", line: 4 }],
+    },
+    {
+      name: "searchParams read by a cached closure inside a page",
+      filename: "app/search/page.tsx",
+      code: `
+export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  async function Results() {
+    "use cache";
+    const { q } = await searchParams;
+    return <List q={q} />;
+  }
+  return <Results />;
+}`,
+      errors: [{ messageId: "searchParams", line: 5 }],
     },
   ],
 });
