@@ -16,6 +16,8 @@ Read the repository's agent instructions and `git status`. Identify:
 - The lint setup: `oxlint.config.ts`, `.oxlintrc.json`, a Vite+ config with a `lint` section, or an ESLint flat config (`eslint.config.*`).
 - The installed `oxlint` version, if any, from the lockfile or the package manager.
 - Auth libraries that read cookies or headers: `next-auth`, `@clerk/nextjs`, `better-auth`, `@workos-inc/authkit-nextjs`, `@supabase/ssr`.
+- Local helpers that read the session through `cookies()` or `headers()`, such as `getSessionOfCurrentRequest()`. Search for files that import `cookies` or `headers` from `next/headers` and export a function, and note how other files import it, for example `@/lib/session` or `#lib/session.ts`.
+- Whether a warning fails the lint: `--deny-warnings`, `--max-warnings 0`, or `--max-warnings=0` in the lint scripts of `package.json`, in pre-commit hooks (`lefthook.yml`, `.husky/`, `lint-staged`), and in CI workflows.
 
 Complete when you know the package manager, the lint runner and its config file, and the app directories.
 
@@ -28,7 +30,14 @@ Install as development dependencies, in the package that owns the lint config:
 
 Use the repository's package manager, for example `pnpm add -D oxlint oxlint-plugin-cache-components`. Do not change unrelated dependency ranges.
 
-If the package manager rejects a version because of a minimum release age policy, such as `minimumReleaseAge` in pnpm, do not add an exclusion or lower the policy. Tell the user, and install the newest version that the policy allows only if they agree.
+If the package manager rejects a version because of a minimum release age policy, such as `minimumReleaseAge` in pnpm or Bun, do not add an exclusion or lower the policy on your own. Tell the user, and install the newest version that the policy allows only if they agree.
+
+If the user approves an exclusion instead:
+
+- Exclude every package that the install adds at a new version. For `oxlint`, that includes its platform binaries, the `@oxlint/binding-*` packages listed in the `optionalDependencies` of its `package.json`. List each one by name, for every platform that installs the repository, including CI. Bun 1.4.0 dropped the bindings from `bun.lock` without an error when they were not excluded, and `oxlint` then fails with `Cannot find module './oxlint.<platform>.node'`.
+- In a monorepo, upgrade `oxlint` in every workspace that depends on it. An older range in another workspace keeps the old entry in the lockfile and blocks the new resolution.
+- After installing, run `oxlint --version`, and check that the lockfile has the `@oxlint/binding-*` entries at the new version.
+- Suggest removing the exclusion once the versions are older than the policy, and check that a frozen install, such as `bun install --frozen-lockfile`, passes with the original policy.
 
 Complete when the package appears in `devDependencies` and the lockfile is updated.
 
@@ -83,6 +92,7 @@ export default [
 Then add shared settings when they apply:
 
 - If the repository uses an auth library, add its function to `requestApis`, for example `"next-auth:auth"` or `"@clerk/nextjs/server:currentUser"`.
+- If the repository has local helpers that read cookies or headers, offer to add them to `requestApis`. The rules do not follow imports into other files, so they cannot see the `cookies()` call inside the helper. Use the module as other files import it, for example `"@/lib/session:getSessionOfCurrentRequest"`, or the name alone when files import it through different paths.
 - If the app directory is not `app` or `src/app` relative to where lint runs, set `appDir`, for example `["apps/web/app"]`.
 
 ```json
@@ -95,6 +105,8 @@ Then add shared settings when they apply:
   }
 }
 ```
+
+If a warning fails the lint in this repository, tell the user before running the linter. The `recommended` preset sets `require-revalidate-tag-profile`, `require-revalidate-path-type`, and `require-auth-before-revalidate` to `warn`, so a finding of one of them fails the lint script, the pre-commit hook, or CI. Offer three choices: keep the preset and fix the findings, set those rules to `error` explicitly, or turn off `require-auth-before-revalidate`, which is a heuristic.
 
 Complete when the lint config loads the plugin and every `cache-components/*` rule from the preset is enabled.
 
