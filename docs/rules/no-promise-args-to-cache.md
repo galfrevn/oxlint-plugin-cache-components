@@ -79,7 +79,7 @@ export default function Page({ params }: { params: Promise<{ slug: string }> }) 
 ```
 
 - `checkParams` (`boolean`, default `false`): also report the `searchParams` and `params` props. On Next.js 16.4.6 they did not time out inside a `<Suspense>` boundary, so they are off by default. Turn the option on to keep cached functions free of request promises as a convention.
-- `requestApis` (`string[]`, default `[]`): third-party functions that return request data, in the same format as in [`no-request-api-in-cache`](no-request-api-in-cache.md#options). It can also be set once in `settings["cache-components"].requestApis`.
+- `requestApis` (`string[]`, default `[]`): functions that return request data, from an auth library or your own helpers imported from another file, in the same format as in [`no-request-api-in-cache`](no-request-api-in-cache.md#options). It can also be set once in `settings["cache-components"].requestApis`.
 
 ## Limitations
 

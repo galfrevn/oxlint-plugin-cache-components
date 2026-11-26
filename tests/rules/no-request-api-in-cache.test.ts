@@ -664,6 +664,27 @@ export async function getProfile() {
       ],
     },
     {
+      name: "requestApis with a local helper imported through a subpath import",
+      settings: {
+        "cache-components": {
+          requestApis: ["#source/lib/authentication/server.ts:findSessionOfCurrentRequest"],
+        },
+      },
+      code: `
+import { findSessionOfCurrentRequest } from "#source/lib/authentication/server.ts";
+export async function getJobs() {
+  "use cache";
+  const session = await findSessionOfCurrentRequest();
+  return session?.jobs;
+}`,
+      errors: [
+        {
+          messageId: "requestApi",
+          data: { api: "findSessionOfCurrentRequest()", scope: '"use cache"', url: USE_CACHE_URL },
+        },
+      ],
+    },
+    {
       name: "connection through a namespace import inside a private cache",
       code: `
 import * as server from "next/server";

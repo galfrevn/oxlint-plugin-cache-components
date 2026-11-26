@@ -88,7 +88,7 @@ Options that several rules read can be set once. A rule option takes precedence 
 {
   "settings": {
     "cache-components": {
-      "requestApis": ["next-auth:auth", "@clerk/nextjs/server:currentUser"],
+      "requestApis": ["next-auth:auth", "@/lib/session:getSessionOfCurrentRequest"],
       "appDir": ["apps/web/app"],
       "shortProfiles": ["realtime"],
       "authFunctions": ["assertAdmin"],
@@ -98,7 +98,7 @@ Options that several rules read can be set once. A rule option takes precedence 
 }
 ```
 
-- `requestApis`: third-party functions that read cookies or headers, treated like `cookies()`. `"auth"` matches an import named `auth` from any module, and `"next-auth:auth"` matches only that module.
+- `requestApis`: functions that read cookies or headers, treated like `cookies()`. They can come from an auth library or be your own helpers imported from another file, since the rules do not follow imports. `"auth"` matches an import named `auth` from any module, and `"next-auth:auth"` matches only that module. The module must match the import source as written, such as `@/lib/session` or `#lib/session.ts`. Use the name alone when files import the helper through different paths.
 - `appDir`: App Router directories, matched against the file path relative to where the linter runs. The default is `["app", "src/app"]`.
 - `shortProfiles`: custom `cacheLife` profiles from `next.config` whose `expire` is under 5 minutes or whose `revalidate` is `0`.
 - `authFunctions` and `authWrappers`: auth helpers and wrappers for `require-auth-before-revalidate`, added to its defaults.

@@ -108,7 +108,7 @@ export async function getCart() {
 }
 ```
 
-- `requestApis` (`string[]`, default `[]`): third-party functions that read cookies or headers, treated like `cookies()`. `"auth"` matches an import named `auth` from any module. `"next-auth:auth"` matches only the `auth` export of `next-auth`. It can also be set once for every rule in `settings["cache-components"].requestApis`. The rule option takes precedence.
+- `requestApis` (`string[]`, default `[]`): functions that read cookies or headers, treated like `cookies()`, from an auth library or your own helpers imported from another file. `"auth"` matches an import named `auth` from any module. `"next-auth:auth"` matches only the `auth` export of `next-auth`. It can also be set once for every rule in `settings["cache-components"].requestApis`. The rule option takes precedence.
 - `checkTransitive` (`boolean`, default `true`): follow helpers in the same file.
 
 ## Limitations
