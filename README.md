@@ -61,7 +61,7 @@ import cacheComponents from "oxlint-plugin-cache-components";
 export default [cacheComponents.configs["flat/recommended"]];
 ```
 
-The plugin needs oxlint 1.95.0 or later and Node.js `^20.19.0 || >=22.12.0`. `oxlint.config.ts` needs Node.js 22.18 or later, and a `package.json` with `"type": "module"` to avoid a Node.js warning on every run. Use `.oxlintrc.json` otherwise.
+The plugin needs oxlint 1.63.0 or later and Node.js `^20.19.0 || >=22.12.0`. `oxlint.config.ts` needs Node.js 22.18 or later, and a `package.json` with `"type": "module"` to avoid a Node.js warning on every run. Use `.oxlintrc.json` otherwise.
 
 ### Presets
 
