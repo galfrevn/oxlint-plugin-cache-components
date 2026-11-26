@@ -2,6 +2,7 @@ import type { Rule } from "@oxlint/plugins";
 
 import { noCacheApiOutsideCache } from "./no-cache-api-outside-cache.ts";
 import { noInvalidCacheNesting } from "./no-invalid-cache-nesting.ts";
+import { noPromiseArgsToCache } from "./no-promise-args-to-cache.ts";
 import { noRequestApiInCache } from "./no-request-api-in-cache.ts";
 import { requireCacheLifeWhenNested } from "./require-cachelife-when-nested.ts";
 import { requireRevalidatePathType } from "./require-revalidate-path-type.ts";
@@ -21,6 +22,7 @@ export const RULES: Readonly<Record<string, RuleEntry>> = {
   "require-cachelife-when-nested": { rule: requireCacheLifeWhenNested, recommended: "error" },
   "no-invalid-cache-nesting": { rule: noInvalidCacheNesting, recommended: "error" },
   "valid-invalidation-context": { rule: validInvalidationContext, recommended: "error" },
+  "no-promise-args-to-cache": { rule: noPromiseArgsToCache, recommended: "error" },
   "require-revalidate-tag-profile": { rule: requireRevalidateTagProfile, recommended: "warn" },
   "require-revalidate-path-type": { rule: requireRevalidatePathType, recommended: "warn" },
 };
