@@ -3,9 +3,39 @@ import { createTester } from "../helpers/tester.ts";
 
 const ACTIONS = "app/actions.ts";
 const ROUTE = "app/api/revalidate/route.ts";
+const FORM_FIELDS = Array.from(
+  { length: 64 },
+  (_, index) => `    field${index}: formData.get("field${index}")?.toString() ?? "",`,
+).join("\n");
+const UNCHECKED_SETTINGS_ACTION = `
+"use server";
+import { revalidatePath } from "next/cache";
+export async function saveSettings(formData: FormData) {
+  const settings = {
+${FORM_FIELDS}
+  };
+  await db.settings.update({ data: settings });
+  revalidatePath("/settings");
+}`;
 
 createTester().run("cache-components/require-auth-before-revalidate", requireAuthBeforeRevalidate, {
   valid: [
+    {
+      name: "an action that checks the session before 64 optional form fields",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { revalidatePath } from "next/cache";
+export async function saveSettings(formData: FormData) {
+  const session = await auth();
+  if (!session) throw new Error("Unauthorized");
+  const settings = {
+${FORM_FIELDS}
+  };
+  await db.settings.update({ data: settings });
+  revalidatePath("/settings");
+}`,
+    },
     {
       name: "an action that checks the session first",
       filename: ACTIONS,
@@ -278,6 +308,20 @@ export async function save() {
     },
   ],
   invalid: [
+    {
+      name: "an action with 64 optional form fields and no auth",
+      filename: ACTIONS,
+      code: UNCHECKED_SETTINGS_ACTION,
+      errors: [
+        {
+          messageId: "missingAuth",
+          line:
+            UNCHECKED_SETTINGS_ACTION.split("\n").findIndex((line) =>
+              line.includes('revalidatePath("'),
+            ) + 1,
+        },
+      ],
+    },
     {
       name: "an action without auth",
       filename: ACTIONS,

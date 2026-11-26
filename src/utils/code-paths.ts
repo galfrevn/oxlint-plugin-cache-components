@@ -61,29 +61,26 @@ export function createCodePathTracker(): CodePathTracker {
       }
       return (
         targetSegment.prevSegments.length > 0 &&
-        targetSegment.prevSegments.every((segment) => isCheckedOnExit(segment, checked, new Set()))
+        !reachesEntryUnchecked(targetSegment.prevSegments, checked)
       );
     },
   };
 }
 
-function isCheckedOnExit(
-  segment: Segment,
-  checked: ReadonlySet<Segment>,
-  visiting: Set<Segment>,
-): boolean {
-  if (checked.has(segment) || visiting.has(segment)) {
-    return true;
+function reachesEntryUnchecked(start: readonly Segment[], checked: ReadonlySet<Segment>): boolean {
+  const seen = new Set<Segment>();
+  const pending = [...start];
+  for (let segment = pending.pop(); segment; segment = pending.pop()) {
+    if (checked.has(segment) || seen.has(segment)) {
+      continue;
+    }
+    if (segment.prevSegments.length === 0) {
+      return true;
+    }
+    seen.add(segment);
+    pending.push(...segment.prevSegments);
   }
-  if (segment.prevSegments.length === 0) {
-    return false;
-  }
-  visiting.add(segment);
-  const result = segment.prevSegments.every((previous) =>
-    isCheckedOnExit(previous, checked, visiting),
-  );
-  visiting.delete(segment);
-  return result;
+  return false;
 }
 
 function isSegment(value: unknown): value is Segment {
