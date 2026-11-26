@@ -35,6 +35,8 @@ const messageMatchers = buildMessageMatchers(plugin.rules);
 await mkdir(CORPUS_DIR, { recursive: true });
 const configPath = join(CORPUS_DIR, "oxlintrc.json");
 const baselinePath = join(CORPUS_DIR, "baseline.json");
+const emptyPluginPath = join(CORPUS_DIR, "empty-plugin.mjs");
+const emptyConfigPath = join(CORPUS_DIR, "empty-plugin.json");
 await writeFile(
   configPath,
   JSON.stringify({
@@ -44,6 +46,18 @@ await writeFile(
   }),
 );
 await writeFile(baselinePath, "{}");
+await writeFile(
+  emptyPluginPath,
+  'export default { meta: { name: "empty" }, rules: { rule: { createOnce() { return { Program() {} }; } } } };\n',
+);
+await writeFile(
+  emptyConfigPath,
+  JSON.stringify({
+    categories: { correctness: "off" },
+    jsPlugins: [emptyPluginPath],
+    rules: { "empty/rule": "error" },
+  }),
+);
 
 const repos = await selectRepos(Number(values.limit));
 const results = await sequence(repos, async (repo) => {
@@ -53,6 +67,7 @@ const results = await sequence(repos, async (repo) => {
   }
   const lint = await lintRepo(checkout, configPath);
   const baseline = values.baseline ? await lintRepo(checkout, baselinePath) : null;
+  const emptyPlugin = values.baseline ? await lintRepo(checkout, emptyConfigPath) : null;
   console.log(
     `${repo.repo}: ${lint.findings.length} findings in ${Math.round(lint.durationMs)} ms`,
   );
@@ -60,6 +75,7 @@ const results = await sequence(repos, async (repo) => {
     ...repo,
     durationMs: lint.durationMs,
     baselineMs: baseline?.durationMs ?? null,
+    emptyPluginMs: emptyPlugin?.durationMs ?? null,
     error: lint.error,
     findings: lint.findings,
     crashes: lint.crashes,
@@ -197,6 +213,7 @@ function summarize(entries) {
   }
   const lintMs = entries.reduce((total, result) => total + (result.durationMs ?? 0), 0);
   const baselineMs = entries.reduce((total, result) => total + (result.baselineMs ?? 0), 0);
+  const emptyPluginMs = entries.reduce((total, result) => total + (result.emptyPluginMs ?? 0), 0);
   return {
     repos: entries.length,
     failed: entries.filter((result) => result.error).map((result) => result.repo),
@@ -205,6 +222,7 @@ function summarize(entries) {
     ),
     lintMs: Math.round(lintMs),
     baselineMs: baselineMs > 0 ? Math.round(baselineMs) : null,
+    emptyPluginMs: emptyPluginMs > 0 ? Math.round(emptyPluginMs) : null,
     byRule: Object.fromEntries(
       Object.entries(byRule)
         .toSorted(([a], [b]) => a.localeCompare(b))
@@ -229,7 +247,7 @@ function renderMarkdown(runDate, totals, entries) {
   const timing =
     totals.baselineMs === null
       ? `The plugin took ${totals.lintMs} ms in total.`
-      : `The plugin took ${totals.lintMs} ms in total. oxlint with its default config took ${totals.baselineMs} ms.`;
+      : `The plugin took ${totals.lintMs} ms in total. oxlint with its default config took ${totals.baselineMs} ms, and with an empty JS plugin ${totals.emptyPluginMs} ms (ratio to the empty plugin: ${(totals.lintMs / totals.emptyPluginMs).toFixed(2)}).`;
   return [
     `# Corpus run ${runDate}`,
     "",
