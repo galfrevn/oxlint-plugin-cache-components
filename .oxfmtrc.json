@@ -5,7 +5,6 @@
   "sortPackageJson": false,
   "ignorePatterns": [
     "**/*.md",
-    "documentation/**",
     "pnpm-lock.yaml",
     "dist/**",
     "coverage/**",

@@ -109,35 +109,35 @@
       "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-cookies-third-party/page.tsx",
       "nextjs": "Throws: a third-party package reads `cookies()` inside \"use cache\".",
       "expected": [],
-      "notReported": "The cookies() call is in another file. The plugin analyzes one file at a time (ADR-005)."
+      "notReported": "The cookies() call is in another file. The plugin analyzes one file at a time."
     },
     {
       "file": "cache-components-errors/app/use-cache-low-expire/fast/page.tsx",
       "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-low-expire/fast/page.tsx",
       "nextjs": "Fails during prerender: a short-lived cache creates a dynamic hole without a Suspense boundary.",
       "expected": [],
-      "notReported": "Missing Suspense boundaries are not in the v0.1 rule catalog."
+      "notReported": "No rule reports missing Suspense boundaries."
     },
     {
       "file": "cache-components-errors/app/use-cache-low-expire/slow/page.tsx",
       "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-low-expire/slow/page.tsx",
       "nextjs": "Fails during prerender: a short-lived cache creates a dynamic hole without a Suspense boundary.",
       "expected": [],
-      "notReported": "Missing Suspense boundaries are not in the v0.1 rule catalog."
+      "notReported": "No rule reports missing Suspense boundaries."
     },
     {
       "file": "cache-components-errors/app/use-cache-revalidate-0/fast/page.tsx",
       "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-revalidate-0/fast/page.tsx",
       "nextjs": "Fails during prerender: a revalidate: 0 cache creates a dynamic hole without a Suspense boundary.",
       "expected": [],
-      "notReported": "Missing Suspense boundaries are not in the v0.1 rule catalog."
+      "notReported": "No rule reports missing Suspense boundaries."
     },
     {
       "file": "cache-components-errors/app/use-cache-revalidate-0/slow/page.tsx",
       "source": "test/e2e/app-dir/cache-components-errors/fixtures/default/app/use-cache-revalidate-0/slow/page.tsx",
       "nextjs": "Fails during prerender: a revalidate: 0 cache creates a dynamic hole without a Suspense boundary.",
       "expected": [],
-      "notReported": "Missing Suspense boundaries are not in the v0.1 rule catalog."
+      "notReported": "No rule reports missing Suspense boundaries."
     },
     {
       "file": "cache-components-errors/app/static/page.tsx",

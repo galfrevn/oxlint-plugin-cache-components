@@ -54,7 +54,7 @@ describe("plugin", () => {
 });
 
 describe("presets", () => {
-  it("uses the severities from the specification in recommended", () => {
+  it("reports Next.js errors as errors and the rest as warnings in recommended", () => {
     expect(recommended.rules).toEqual({
       "cache-components/no-request-api-in-cache": "error",
       "cache-components/no-cache-api-outside-cache": "error",

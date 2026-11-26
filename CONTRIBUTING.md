@@ -4,9 +4,7 @@ Contributions are welcome: bug reports with a reproduction, false-positive repor
 
 ## Design changes
 
-- Open an issue to discuss a change to the design. If the repository has Discussions enabled, a discussion works too.
-- Propose a change to an architecture decision in an issue first. Then open a pull request with the change.
-- Decisions live in [`documentation/decisions.md`](documentation/decisions.md). Until the first release, a change to a decision updates its record in place. After the first release, a new record supersedes the old one.
+- Open an issue to discuss a change to the design, such as a new option, a preset change, or a change to what the analysis treats as proven. If the repository has Discussions enabled, a discussion works too.
 - Documentation changes follow [Writing documentation](#writing-documentation).
 
 ## Before you start
@@ -24,7 +22,7 @@ pnpm test          # Vitest: RuleTester suites and end-to-end tests
 pnpm lint          # oxlint over this repository
 pnpm typecheck
 pnpm build         # tsdown, ESM and type declarations in dist/
-pnpm corpus        # runs the plugin over the corpus
+pnpm corpus        # runs the plugin over public repositories
 pnpm next-sync     # compares Next.js error messages with the snapshot
 pnpm smoke         # runs the built plugin with the oxlint CLI
 pnpm conformance   # builds each case with Next.js and checks the error and the rule
@@ -32,15 +30,16 @@ pnpm conformance   # builds each case with Next.js and checks the error and the 
 
 ## Proposing a new rule
 
-Every rule must map to Next.js behavior that already exists. Next.js must throw an error, log a warning, or do nothing for a call that looks valid. See [ADR-006](documentation/decisions.md#adr-006-nextjs-errors-as-the-source-of-truth-for-the-catalog).
+Every rule must map to Next.js behavior that already exists. Next.js must throw an error, log a warning, or do nothing for a call that looks valid. A rule that only enforces a style preference does not belong in this plugin.
 
-1. Find the Next.js source for the behavior. The source of truth is `packages/next/src/server/use-cache/use-cache-messages.ts` and `packages/next/src/server/web/spec-extension/revalidate.ts` in `vercel/next.js`.
+1. Find the Next.js source for the behavior. Most messages come from `packages/next/src/server/use-cache/use-cache-messages.ts` and `packages/next/src/server/web/spec-extension/revalidate.ts` in `vercel/next.js`.
 2. Open an issue that quotes the Next.js error or behavior, links its source, and shows an invalid and a valid example.
-3. Write the specification in `documentation/rules/<rule-name>.md`. Follow the section order in [the rule catalog](documentation/spec.md#specification-structure).
-4. Include at least one invalid example and one valid example. Include a false-positive analysis in the "False-positive risk" section.
-5. Add the rule to the rule catalog in [`documentation/spec.md`](documentation/spec.md#rule-catalog).
+3. Add the rule in `src/rules/<rule-name>.ts` and register it in `src/rules/index.ts`.
+4. Add `tests/rules/<rule-name>.test.ts` with every example from the doc, and a test for every message and suggestion.
+5. Write `docs/rules/<rule-name>.md` with the same sections as the existing docs: rule details, examples, options, and limitations.
+6. Add a case to `conformance/cases/` that reproduces the Next.js error or warning, and run `pnpm conformance`.
 
-A rule joins `recommended` only when it maps to a Next.js error or warning, the conformance app confirms the mapping, and the false-positive rate on the corpus is under 5%. Heuristics ship as `warn` or in `strict`.
+A rule joins `recommended` only when it maps to a Next.js error or warning, a conformance case confirms the mapping, and its false-positive rate on the corpus is under 5% as an error or under 15% as a warning. Heuristics ship as warnings in `strict`. See [`scripts/corpus/README.md`](scripts/corpus/README.md) for how the corpus is measured.
 
 ## Coding agents
 
@@ -81,7 +80,7 @@ Contributions are licensed under the [MIT license](LICENSE), the same license as
 
 ## Writing documentation
 
-This guide applies to every Markdown file in this repository: the README, the files in `documentation/`, ADRs, rule docs, issue templates, and release notes. Reviewers can reject a change that breaks it.
+This guide applies to every Markdown file in this repository: the README, the rule docs, issue templates, and release notes. Reviewers can reject a change that breaks it.
 
 The goal is documentation an engineer can trust and skim. Every sentence should either state a fact, give an instruction, or explain a decision.
 
@@ -89,9 +88,9 @@ The goal is documentation an engineer can trust and skim. Every sentence should 
 
 #### Say what is true, and only that
 
-- Describe what exists in the present tense. Describe what does not exist yet as planned, and label it: "Planned for v0.2".
+- Describe what exists in the present tense. Do not document features that do not exist.
 - Do not state performance numbers, adoption numbers, or compatibility claims without a source or a benchmark in this repository. Link to it.
-- Mark facts by how well they are checked: **Verified** (checked against the primary source, with date), **Secondary source** (reported by a third party), or **Unverified** (needs checking; say what to check).
+- State the Next.js version a behavior was checked against, such as "Next.js 16.4.6 fails the build with".
 - If you do not know something, write that you do not know it and what would settle it.
 
 #### Lead with the point
@@ -116,7 +115,7 @@ The goal is documentation an engineer can trust and skim. Every sentence should 
 - No exclamation marks and no rhetorical questions.
 - Use periods and commas instead of chains of em dashes.
 - Dates in ISO format: `2026-11-26`. American English spelling.
-- Link text describes the target: "see the [documentation index](README.md#documentation)", not "click [here](README.md#documentation)".
+- Link text describes the target: "see the [rule docs](docs/rules)", not "click [here](docs/rules)".
 
 #### Do not pad
 
@@ -148,7 +147,6 @@ These words usually signal filler or marketing. Replace them with the concrete c
 ### Checklist before you open a pull request
 
 - [ ] Every claim about speed, size, adoption, or compatibility has a source or a benchmark link.
-- [ ] Planned features are labeled as planned.
 - [ ] No word from the table above appears, unless it is quoted from a source.
 - [ ] Relative links and anchors resolve.
 - [ ] Code blocks declare a language and run as written.
