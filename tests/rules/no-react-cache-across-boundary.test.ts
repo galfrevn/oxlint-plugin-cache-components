@@ -24,6 +24,44 @@ async function Profile({ id }: { id: string }) {
 }`,
     },
     {
+      name: "a component rendered only inside a cached function",
+      code: `
+import { cache } from "react";
+const getSeed = cache(() => Math.random());
+function Badge() {
+  return <span>{getSeed()}</span>;
+}
+async function Card() {
+  "use cache";
+  return (
+    <div>
+      {getSeed()}
+      <Badge />
+    </div>
+  );
+}
+export default async function Page() {
+  return <Card />;
+}`,
+    },
+    {
+      name: "a helper called only from cached functions through another helper",
+      code: `
+import { cache } from "react";
+const getConfig = cache(async () => loadConfig());
+async function readTheme() {
+  return (await getConfig()).theme;
+}
+async function themeClass() {
+  return \`theme-\${await readTheme()}\`;
+}
+export async function Shell() {
+  "use cache";
+  await getConfig();
+  return <body className={await themeClass()} />;
+}`,
+    },
+    {
       name: "a cache function from another library",
       code: `
 import { cache } from "./memo";
@@ -39,6 +77,28 @@ async function Profile({ id }: { id: string }) {
     },
   ],
   invalid: [
+    {
+      name: "a component rendered both inside and outside a cached function",
+      code: `
+import { cache } from "react";
+const getSeed = cache(() => Math.random());
+function Badge() {
+  return <span>{getSeed()}</span>;
+}
+async function Card() {
+  "use cache";
+  return <div>{getSeed()}</div>;
+}
+export default async function Page() {
+  return (
+    <main>
+      <Card />
+      <Badge />
+    </main>
+  );
+}`,
+      errors: [{ messageId: "isolated", line: 9 }],
+    },
     {
       name: "preload outside and consume inside",
       code: `

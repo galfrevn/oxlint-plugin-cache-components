@@ -1,7 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { Context, ESTree, Rule } from "@oxlint/plugins";
 
-import type { FileAnalysis } from "../utils/analysis.ts";
+import type { FileAnalysis, FunctionInfo } from "../utils/analysis.ts";
 import { skipTransparentParents, unwrapExpression } from "../utils/ast.ts";
 import { ruleDocsUrl, scopeLabel } from "../utils/messages.ts";
 import { analyze, getRuleOptions, textMentions } from "../utils/options.ts";
@@ -63,7 +63,7 @@ function checkDeclarator(
       ? [outer.parent]
       : [];
   });
-  const outside = calls.find((call) => analysis.getCacheScope(call) === null);
+  const outside = calls.find((call) => isOutsideCache(analysis, call));
   if (!outside) {
     return;
   }
@@ -78,4 +78,34 @@ function checkDeclarator(
       });
     }
   }
+}
+
+function isOutsideCache(analysis: FileAnalysis, call: ESTree.CallExpression): boolean {
+  if (analysis.getCacheScope(call) !== null) {
+    return false;
+  }
+  const unit = analysis.unitAt(call);
+  return !unit || !runsOnlyInsideCache(analysis, unit, new Set());
+}
+
+function runsOnlyInsideCache(
+  analysis: FileAnalysis,
+  unit: FunctionInfo,
+  visiting: Set<FunctionInfo>,
+): boolean {
+  if (analysis.getCacheScope(unit.node) !== null || visiting.has(unit)) {
+    return true;
+  }
+  const callers = analysis.callGraph.callersOf(unit.node);
+  if (unit.exportNames.length > 0 || callers.length === 0) {
+    return false;
+  }
+  visiting.add(unit);
+  return callers.every((site) => {
+    if (analysis.getCacheScope(site.node) !== null) {
+      return true;
+    }
+    const caller = site.caller ? analysis.functions.get(site.caller) : undefined;
+    return caller !== undefined && runsOnlyInsideCache(analysis, caller, visiting);
+  });
 }
