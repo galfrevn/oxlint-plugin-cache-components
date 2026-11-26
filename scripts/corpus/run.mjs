@@ -14,6 +14,7 @@ const CORPUS_DIR = join(ROOT, ".corpus");
 const RESULTS_DIR = join(ROOT, "scripts/corpus/results");
 const OXLINT = join(dirname(require.resolve("oxlint/package.json")), "bin", "oxlint");
 const PLUGIN = join(ROOT, "dist/index.js");
+const PLUGIN_CRASH = "Error running JS plugin";
 
 const { values } = parseArgs({
   options: {
@@ -48,7 +49,7 @@ const repos = await selectRepos(Number(values.limit));
 const results = await sequence(repos, async (repo) => {
   const checkout = join(CORPUS_DIR, repo.repo.replace("/", "__"));
   if (!(await clone(repo.repo, checkout))) {
-    return { ...repo, error: "clone failed", findings: [] };
+    return { ...repo, error: "clone failed", findings: [], crashes: [], parseErrors: 0 };
   }
   const lint = await lintRepo(checkout, configPath);
   const baseline = values.baseline ? await lintRepo(checkout, baselinePath) : null;
@@ -61,6 +62,8 @@ const results = await sequence(repos, async (repo) => {
     baselineMs: baseline?.durationMs ?? null,
     error: lint.error,
     findings: lint.findings,
+    crashes: lint.crashes,
+    parseErrors: lint.parseErrors,
   };
 });
 
@@ -137,8 +140,17 @@ async function lintRepo(checkout, config) {
   }
   const durationMs = performance.now() - start;
   const diagnostics = stdout ? JSON.parse(stdout).diagnostics : [];
+  const crashes = diagnostics
+    .filter((diagnostic) => !diagnostic.code && diagnostic.message.startsWith(PLUGIN_CRASH))
+    .map((diagnostic) => ({
+      file: relative(checkout, join(ROOT, diagnostic.filename)),
+      message: diagnostic.message.split("\n").slice(0, 3).join(" "),
+    }));
+  const parseErrors = diagnostics.filter(
+    (diagnostic) => !diagnostic.code && !diagnostic.message.startsWith(PLUGIN_CRASH),
+  ).length;
   const findings = diagnostics
-    .filter((diagnostic) => diagnostic.code.startsWith("cache-components("))
+    .filter((diagnostic) => diagnostic.code?.startsWith("cache-components("))
     .map((diagnostic) => {
       const rule = diagnostic.code.slice("cache-components(".length, -1);
       return {
@@ -149,7 +161,7 @@ async function lintRepo(checkout, config) {
         message: diagnostic.message,
       };
     });
-  return { durationMs, findings, error };
+  return { durationMs, findings, crashes, parseErrors, error };
 }
 
 function buildMessageMatchers(rules) {
@@ -188,6 +200,9 @@ function summarize(entries) {
   return {
     repos: entries.length,
     failed: entries.filter((result) => result.error).map((result) => result.repo),
+    crashes: entries.flatMap((result) =>
+      result.crashes.map((crash) => ({ repo: result.repo, ...crash })),
+    ),
     lintMs: Math.round(lintMs),
     baselineMs: baselineMs > 0 ? Math.round(baselineMs) : null,
     byRule: Object.fromEntries(
@@ -220,6 +235,8 @@ function renderMarkdown(runDate, totals, entries) {
     "",
     `Linted ${totals.repos} repositories with the \`all\` preset. ${timing}`,
     totals.failed.length > 0 ? `\nFailed to lint: ${totals.failed.join(", ")}.` : "",
+    `\nPlugin errors: ${totals.crashes.length}.`,
+    ...totals.crashes.map((crash) => `- ${crash.repo} \`${crash.file}\`: ${crash.message}`),
     "",
     "## Findings by rule",
     "",
