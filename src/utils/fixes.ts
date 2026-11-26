@@ -28,23 +28,13 @@ export function planNamedImport(
   if (isNameTaken(analysis.sourceCode, exported)) {
     return null;
   }
-  const declaration = analysis.bindings.findImportDeclaration(module);
-  const lastSpecifier = declaration?.specifiers.at(-1);
-  if (lastSpecifier) {
-    return {
-      local: exported,
-      apply: (fixer) => [fixer.insertTextAfter(lastSpecifier, `, ${exported}`)],
-    };
+  const lastSpecifier = analysis.bindings.findImportDeclaration(module)?.specifiers.at(-1);
+  if (!lastSpecifier) {
+    return null;
   }
-  const statement = `import { ${exported} } from "${module}";`;
-  const anchor = analysis.bindings.importDeclarations.at(-1) ?? lastDirective(analysis);
   return {
     local: exported,
-    apply: (fixer) => [
-      anchor
-        ? fixer.insertTextAfter(anchor, `\n${statement}`)
-        : fixer.insertTextBeforeRange([0, 0], `${statement}\n`),
-    ],
+    apply: (fixer) => [fixer.insertTextAfter(lastSpecifier, `, ${exported}`)],
   };
 }
 
@@ -87,17 +77,6 @@ export function insertStatementAtBodyStart(
 function indentationOf(sourceCode: SourceCode, node: Node): string {
   const line = sourceCode.lines[sourceCode.getLoc(node).start.line - 1] ?? "";
   return /^\s*/.exec(line)?.[0] ?? "";
-}
-
-function lastDirective(analysis: FileAnalysis): Node | null {
-  let last: Node | null = null;
-  for (const statement of analysis.sourceCode.ast.body) {
-    if (statement.type !== "ExpressionStatement" || typeof statement.directive !== "string") {
-      break;
-    }
-    last = statement;
-  }
-  return last;
 }
 
 function isNameTaken(sourceCode: SourceCode, name: string): boolean {

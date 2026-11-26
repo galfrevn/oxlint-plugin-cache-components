@@ -39,7 +39,6 @@ export interface NextBindings {
   resolveRequestApi(callee: Node): ResolvedRequestApi | null;
   findNamedImport(module: NextModule, exported: string): NamedImport | null;
   findImportDeclaration(module: NextModule): ESTree.ImportDeclaration | null;
-  readonly importDeclarations: readonly ESTree.ImportDeclaration[];
 }
 
 const MODULE_EXPORTS: Readonly<Record<NextModule, Readonly<Record<string, NextApi>>>> = {
@@ -123,7 +122,6 @@ export function createNextBindings(
   }
 
   return {
-    importDeclarations,
     resolve(callee) {
       const target = unwrapExpression(callee);
       return direct.get(target) ?? members.get(target) ?? null;
