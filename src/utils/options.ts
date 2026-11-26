@@ -78,12 +78,13 @@ let mentionText = "";
 let mentionCache = new Map<string, boolean>();
 
 export function textMentions(text: string, ...groups: readonly (readonly string[])[]): boolean {
+  return textMentionsAll(text, RELEVANCE_MARKERS, ...groups);
+}
+
+export function textMentionsAll(text: string, ...groups: readonly (readonly string[])[]): boolean {
   if (text !== mentionText) {
     mentionText = text;
     mentionCache = new Map();
-  }
-  if (!RELEVANCE_MARKERS.some((marker) => mentions(text, marker))) {
-    return false;
   }
   return groups.every((needles) => needles.some((needle) => mentions(text, needle)));
 }
