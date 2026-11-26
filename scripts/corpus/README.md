@@ -26,9 +26,12 @@ done | sort -u
 ```bash
 pnpm corpus --limit 60
 pnpm corpus --limit 60 --baseline
+pnpm corpus --limit 60 --max-ratio 2 --quiet
 ```
 
 The runner takes the repositories with the most stars, plus `vercel/shop`, and clones each one with `git clone --depth 1` into `.corpus/`. It installs no dependencies and runs no code from the repositories. It lints them with the `all` preset and `--disable-nested-config`, so oxlint loads no configuration file from a cloned repository. `--baseline` also times oxlint with its default config and with an empty JS plugin.
+
+`--max-ratio <n>` implies `--baseline`. The run exits with an error when the plugin takes more than `n` times as long as the empty JS plugin across all repositories, or when the plugin crashes on any file. `--quiet` prints only the totals, without a line per repository.
 
 Diagnostics whose message starts with `Error running JS plugin` count as plugin errors. A run should have none.
 
@@ -45,7 +48,11 @@ The false-positive rate of a rule is FP / (TP + FP) on the reviewed sample.
 | `recommended` as `error` | 5% |
 | `recommended` as `warn` | 15% |
 
-A rule above its threshold is fixed or moved to `strict`. A full corpus run with the plugin must not take more than 2 times as long as the same run with an empty JS plugin.
+A rule above its threshold is fixed or moved to `strict`. A full corpus run with the plugin must not take more than 2 times as long as the same run with an empty JS plugin. The `Corpus` workflow enforces this limit.
+
+## Continuous run
+
+The `Corpus` workflow in [`.github/workflows/corpus.yml`](../../.github/workflows/corpus.yml) runs `pnpm corpus --limit 60 --max-ratio 2 --quiet` every Monday, on manual dispatch, and on pull requests that change `src/`, `scripts/corpus/`, `package.json`, or `pnpm-lock.yaml`. The job fails above the time limit or on a plugin crash. It writes the totals and the findings by rule to the job summary, and leaves out the table of findings by file. It uploads no results.
 
 ## Reporting bugs to corpus repositories
 

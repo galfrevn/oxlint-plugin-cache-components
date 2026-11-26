@@ -20,8 +20,17 @@ const { values } = parseArgs({
   options: {
     limit: { type: "string", default: "60" },
     baseline: { type: "boolean", default: false },
+    "max-ratio": { type: "string" },
+    quiet: { type: "boolean", default: false },
   },
 });
+
+const maxRatio = values["max-ratio"] === undefined ? null : Number(values["max-ratio"]);
+if (maxRatio !== null && !(maxRatio > 0)) {
+  console.error("--max-ratio must be a positive number.");
+  process.exit(1);
+}
+const measureBaseline = values.baseline || maxRatio !== null;
 
 if (!existsSync(PLUGIN)) {
   console.error("dist/index.js is missing. Run `pnpm build` first.");
@@ -66,11 +75,13 @@ const results = await sequence(repos, async (repo) => {
     return { ...repo, error: "clone failed", findings: [], crashes: [], parseErrors: 0 };
   }
   const lint = await lintRepo(checkout, configPath);
-  const baseline = values.baseline ? await lintRepo(checkout, baselinePath) : null;
-  const emptyPlugin = values.baseline ? await lintRepo(checkout, emptyConfigPath) : null;
-  console.log(
-    `${repo.repo}: ${lint.findings.length} findings in ${Math.round(lint.durationMs)} ms`,
-  );
+  const baseline = measureBaseline ? await lintRepo(checkout, baselinePath) : null;
+  const emptyPlugin = measureBaseline ? await lintRepo(checkout, emptyConfigPath) : null;
+  if (!values.quiet) {
+    console.log(
+      `${repo.repo}: ${lint.findings.length} findings in ${Math.round(lint.durationMs)} ms`,
+    );
+  }
   return {
     ...repo,
     durationMs: lint.durationMs,
@@ -92,6 +103,44 @@ await writeFile(
 );
 await writeFile(join(RESULTS_DIR, `${date}.md`), renderMarkdown(date, summary, results));
 console.log(`Wrote scripts/corpus/results/${date}.json and ${date}.md`);
+console.log(describeTiming(summary));
+
+if (maxRatio !== null) {
+  const failures = checkLimits(summary, maxRatio);
+  for (const failure of failures) {
+    console.error(failure);
+  }
+  if (failures.length > 0) {
+    process.exitCode = 1;
+  }
+}
+
+function checkLimits(totals, limit) {
+  const failures = [];
+  const ratio = emptyPluginRatio(totals);
+  if (ratio === null) {
+    failures.push("No repository was timed with the empty JS plugin.");
+  } else if (ratio > limit) {
+    failures.push(
+      `The plugin took ${ratio.toFixed(2)} times as long as an empty JS plugin, above the limit of ${limit}.`,
+    );
+  }
+  if (totals.crashes.length > 0) {
+    failures.push(`The plugin crashed on ${totals.crashes.length} files.`);
+  }
+  return failures;
+}
+
+function emptyPluginRatio(totals) {
+  return totals.emptyPluginMs ? totals.lintMs / totals.emptyPluginMs : null;
+}
+
+function describeTiming(totals) {
+  const ratio = emptyPluginRatio(totals);
+  return totals.baselineMs === null || ratio === null
+    ? `The plugin took ${totals.lintMs} ms in total.`
+    : `The plugin took ${totals.lintMs} ms in total. oxlint with its default config took ${totals.baselineMs} ms, and with an empty JS plugin ${totals.emptyPluginMs} ms (ratio to the empty plugin: ${ratio.toFixed(2)}).`;
+}
 
 async function sequence(items, task) {
   const output = [];
@@ -244,10 +293,7 @@ function renderMarkdown(runDate, totals, entries) {
         `| ${result.repo} | \`${finding.file}:${finding.line}\` | \`${finding.rule}\` | \`${finding.messageId}\` |`,
     ),
   );
-  const timing =
-    totals.baselineMs === null
-      ? `The plugin took ${totals.lintMs} ms in total.`
-      : `The plugin took ${totals.lintMs} ms in total. oxlint with its default config took ${totals.baselineMs} ms, and with an empty JS plugin ${totals.emptyPluginMs} ms (ratio to the empty plugin: ${(totals.lintMs / totals.emptyPluginMs).toFixed(2)}).`;
+  const timing = describeTiming(totals);
   return [
     `# Corpus run ${runDate}`,
     "",
