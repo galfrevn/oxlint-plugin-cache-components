@@ -149,6 +149,9 @@ export function getMemberPath(node: Node): string[] | null {
   if (target.type === "CallExpression") {
     return getMemberPath(target.callee);
   }
+  if (target.type === "AwaitExpression") {
+    return getMemberPath(target.argument);
+  }
   if (target.type === "MemberExpression") {
     const property = getStaticPropertyName(target);
     const object = getMemberPath(target.object);
