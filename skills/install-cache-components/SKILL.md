@@ -23,7 +23,7 @@ Complete when you know the package manager, the lint runner and its config file,
 
 Install as development dependencies, in the package that owns the lint config:
 
-- With oxlint: `oxlint-plugin-cache-components`. If `oxlint` is missing, install it too. If the installed `oxlint` is older than 1.95.0, ask the user before upgrading it.
+- With oxlint: `oxlint-plugin-cache-components`. If `oxlint` is missing, install it too. If the installed `oxlint` is older than 1.63.0, ask the user before upgrading it.
 - With ESLint only: `oxlint-plugin-cache-components`. Do not add oxlint unless the user asks.
 
 Use the repository's package manager, for example `pnpm add -D oxlint oxlint-plugin-cache-components`. Do not change unrelated dependency ranges.
