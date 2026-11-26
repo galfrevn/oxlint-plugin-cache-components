@@ -88,6 +88,11 @@ interface CheckContext {
   readonly checkSecrets: boolean;
 }
 
+interface UnitChecks {
+  readonly checks: readonly Node[];
+  readonly firstTrustedCallEnd: number;
+}
+
 export const requireAuthBeforeRevalidate: Rule = defineRule({
   meta: {
     type: "problem",
@@ -153,13 +158,14 @@ export const requireAuthBeforeRevalidate: Rule = defineRule({
           trustAwaitedCalls: getBoolean(options, "trustAwaitedCalls", true),
         };
         const reported = new Set<FunctionInfo>();
+        const unitChecks = new Map<FunctionInfo, UnitChecks>();
         for (const call of calls) {
           const api = analysis.bindings.resolve(call.callee);
           const unit = api && INVALIDATION_APIS.has(api) ? analysis.unitAt(call) : null;
           if (
             unit &&
             !reported.has(unit) &&
-            isUnprotected(analysis, codePaths, unit, call, authOptions)
+            isUnprotected(analysis, codePaths, unitChecks, unit, call, authOptions)
           ) {
             reported.add(unit);
             const isAction = unit.context === "server-action";
@@ -191,6 +197,7 @@ function withDefaults(
 function isUnprotected(
   analysis: FileAnalysis,
   codePaths: CodePathTracker,
+  unitChecks: Map<FunctionInfo, UnitChecks>,
   unit: FunctionInfo,
   call: ESTree.CallExpression,
   options: AuthOptions,
@@ -204,29 +211,42 @@ function isUnprotected(
   if (unit.wrappers.some((wrapper) => matchesWrapper(wrapper, options.authWrappers))) {
     return false;
   }
-  const check: CheckContext = {
-    analysis,
-    options,
-    keys: analysis.sourceCode.visitorKeys,
-    checkSecrets: unit.context === "route-handler",
-  };
+  let summary = unitChecks.get(unit);
+  if (!summary) {
+    summary = collectUnitChecks(unit, {
+      analysis,
+      options,
+      keys: analysis.sourceCode.visitorKeys,
+      checkSecrets: unit.context === "route-handler",
+    });
+    unitChecks.set(unit, summary);
+  }
+  if (summary.firstTrustedCallEnd <= call.range[0]) {
+    return false;
+  }
+  const checks = summary.checks.filter((node) => node.range[1] <= call.range[0]);
+  return !codePaths.dominates(checks, call);
+}
+
+function collectUnitChecks(unit: FunctionInfo, check: CheckContext): UnitChecks {
   const checks: Node[] = [];
-  let trusted = false;
+  let firstTrustedCallEnd = Number.POSITIVE_INFINITY;
   walk(unit.node, check.keys, (node) => {
-    if (trusted || (node !== unit.node && isNestedUnit(analysis, node))) {
+    if (node !== unit.node && isNestedUnit(check.analysis, node)) {
       return SKIP;
-    }
-    if (node.range[1] > call.range[0]) {
-      return undefined;
     }
     if (isAuthCheck(node, check) && !isSwallowedByCatch(node, unit.node)) {
       checks.push(node);
-    } else if (options.trustAwaitedCalls && node.type === "CallExpression") {
-      trusted = isAwaitedProjectCall(analysis, node);
+    } else if (
+      check.options.trustAwaitedCalls &&
+      node.type === "CallExpression" &&
+      isAwaitedProjectCall(check.analysis, node)
+    ) {
+      firstTrustedCallEnd = Math.min(firstTrustedCallEnd, node.range[1]);
     }
     return undefined;
   });
-  return !trusted && !codePaths.dominates(checks, call);
+  return { checks, firstTrustedCallEnd };
 }
 
 function isNestedUnit(analysis: FileAnalysis, node: Node): boolean {

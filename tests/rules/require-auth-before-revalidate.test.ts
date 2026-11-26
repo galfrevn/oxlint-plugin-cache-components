@@ -50,6 +50,21 @@ export async function deletePost(id: string) {
 }`,
     },
     {
+      name: "several invalidations after one auth check",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { revalidatePath, updateTag } from "next/cache";
+export async function publishPost(id: string) {
+  const session = await auth();
+  if (!session) throw new Error("Unauthorized");
+  await db.posts.publish({ where: { id, authorId: session.user.id } });
+  updateTag("posts");
+  updateTag(\`post-\${id}\`);
+  revalidatePath("/blog");
+}`,
+    },
+    {
       name: "a route handler that compares a header with a secret",
       filename: ROUTE,
       code: `
@@ -339,6 +354,20 @@ export async function deletePost(id: string) {
           line: 6,
         },
       ],
+    },
+    {
+      name: "an auth check between two invalidations",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+export async function publishPost(id: string) {
+  updateTag("drafts");
+  const session = await auth();
+  if (!session) throw new Error("Unauthorized");
+  updateTag("posts");
+}`,
+      errors: [{ messageId: "missingAuth", line: 5 }],
     },
     {
       name: "auth after the invalidation",
