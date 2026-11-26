@@ -14,7 +14,7 @@ const OXLINT = join(
   "bin",
   "oxlint",
 );
-const LINT_CONFIG = join(ROOT, "tests/fixtures/configs/all.config.ts");
+const LINT_CONFIG = join(ROOT, "tests/fixtures/configs/conformance.config.ts");
 const BUILD_TIMEOUT_MS = 180_000;
 const SERVER_TIMEOUT_MS = 30_000;
 const PORT = 4173;

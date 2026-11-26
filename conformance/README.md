@@ -9,6 +9,6 @@ Each case in `cases/` reproduces one rule against a real Next.js build. `pnpm co
 - `output`: text that must appear in the build or server output.
 - `request`: `{ "method", "path" }` to send after `next start`.
 
-`next-app/next.config.mjs` registers an in-memory cache handler, `next-app/cache-handler.mjs`, as `custom`, so the cases can use `"use cache: custom"`. The linter runs with the `all` preset.
+`next-app/next.config.mjs` registers an in-memory cache handler, `next-app/cache-handler.mjs`, as `custom`, so the cases can use `"use cache: custom"`. The linter runs with the `all` and `migration` presets, because the app sets `cacheComponents: true`.
 
 The `promise-arg-captured` case is derived from the `bound-args` fixture in `test/e2e/app-dir/use-cache-hanging-inputs` of Next.js (MIT, see [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md)). The latest results are in [`RESULTS.md`](RESULTS.md).
