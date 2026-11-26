@@ -1,0 +1,5 @@
+{
+  "expect": "error",
+  "rule": "no-introspect-passthrough",
+  "output": "Cannot access props on the server"
+}

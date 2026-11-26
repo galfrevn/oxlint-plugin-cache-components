@@ -32,7 +32,7 @@ export default defineConfig({
   },
   overrides: [
     {
-      files: ["scripts/**"],
+      files: ["scripts/**", "conformance/cases/**"],
       rules: {
         "eslint/no-console": "off",
       },

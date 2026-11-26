@@ -1,0 +1,5 @@
+{
+  "expect": "observe",
+  "rule": "serializable-cache-args",
+  "output": "pathname"
+}
