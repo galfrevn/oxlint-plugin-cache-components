@@ -18,7 +18,9 @@ In a Server Action or a Route Handler, the rule reports the first `revalidateTag
 - A rate limit, such as `ratelimit.limit(ip)` or `checkRateLimit()`. A rate limit bounds abusive invalidation, which is the risk this rule targets.
 - In Route Handlers only: an equality comparison with `process.env.<NAME>`, where the name contains `SECRET`, `TOKEN`, or `KEY`, or with a constant whose name contains `SECRET`; a call such as `verifySignature(body, process.env.WEBHOOK_SECRET)`; or a read of `headers.get("authorization")`, `headers.get("x-...-secret")`, or `headers.get("x-...-hmac-...")`.
 
-The rule also stops at an awaited call to a function, imported or declared in the same file, that runs before the invalidation, such as `await deleteWorkspace(slug)`. Data access helpers often check auth inside, and the rule cannot see into another file. Member calls on a client, such as `await db.posts.delete()`, do not count. Set `trustAwaitedCalls` to `false` to require a recognized check instead.
+The rule also stops at an awaited call to a function, imported or declared in the same file, that runs before the invalidation, such as `await deleteWorkspace(slug)`. Data access helpers often check auth inside, and the rule cannot see into another file. An awaited Effect runner, `runPromise` or `runPromiseExit`, counts the same way when its argument is a call to such a function, such as `await runtime.runPromise(deleteWorkspace(slug))`. Member calls on a client, such as `await db.posts.delete()`, do not count, directly or through a runner. Set `trustAwaitedCalls` to `false` to require a recognized check instead.
+
+An action that is public on purpose, such as an unsubscribe link in an email, is often protected by a token instead of a session. Verify the token with a function whose name matches a pattern above, such as `verifyUnsubscribeToken(token)`, or list the action in `allowPublic` when anyone may call it.
 
 The rule skips a function that is wrapped by an entry of `authWrappers`, or by a wrapper whose name contains `auth`, `admin`, `permission`, `protected`, `private`, `session`, or `secure`, such as `adminProcedure.input(schema).action(fn)`. It also skips a function whose name is listed in `allowPublic`. `refresh()` is not checked, because it does not invalidate server-cached data.
 
@@ -62,6 +64,18 @@ export async function deletePost(id: string) {
 ```
 
 ```ts
+"use server";
+import { revalidatePath } from "next/cache";
+
+export async function unsubscribe(token: string) {
+  const subscriber = await verifyUnsubscribeToken(token);
+  if (!subscriber) throw new Error("Invalid token");
+  await db.subscribers.update({ where: { id: subscriber.id }, data: { subscribed: false } });
+  revalidatePath("/preferences");
+}
+```
+
+```ts
 // app/api/revalidate/route.ts
 import { revalidateTag } from "next/cache";
 
@@ -92,7 +106,7 @@ export async function POST(req: Request) {
 - `authFunctions` (`string[]`): functions whose call counts as an auth check. Entries are added to the defaults: `auth`, `checkAuth`, `currentUser`, `getAuth`, `getCurrentUser`, `getServerSession`, `getSession`, `getUser`, `requireAuth`, `requireSession`, `requireUser`, `validateRequest`, and `verifySession`.
 - `authWrappers` (`string[]`): higher-order functions that wrap the action with auth. Entries are added to the defaults: `withAuth`, `authActionClient.action`, `protectedAction`, and `authenticatedAction`. A dotted entry such as `authActionClient.action` also matches `authActionClient.inputSchema(schema).action(fn)`.
 - `allowPublic` (`string[]`, default `[]`): names of actions or handlers that are public on purpose, such as a newsletter form.
-- `trustAwaitedCalls` (`boolean`, default `true`): treat an awaited call to an imported or local function before the invalidation as a possible auth check.
+- `trustAwaitedCalls` (`boolean`, default `true`): treat an awaited call to an imported or local function before the invalidation as a possible auth check, directly or through `runPromise` or `runPromiseExit`.
 - `appDir` (`string[]`, default `["app", "src/app"]`): App Router directories, used to recognize `route` files.
 
 `authFunctions`, `authWrappers`, and `appDir` can also be set once in `settings["cache-components"]`.

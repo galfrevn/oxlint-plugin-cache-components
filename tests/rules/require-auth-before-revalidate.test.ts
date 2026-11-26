@@ -322,6 +322,47 @@ export async function save() {
 }`,
     },
     {
+      name: "an awaited Effect runner of an imported function",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { revalidatePath } from "next/cache";
+import { serverRuntime } from "#source/lib/runtime.ts";
+import { unsubscribeWithToken } from "#source/lib/unsubscribe.ts";
+export async function unsubscribe(token: string) {
+  const outcome = await serverRuntime.runPromise(unsubscribeWithToken(token));
+  if (outcome === "saved") revalidatePath("/preferences/[token]", "page");
+}`,
+    },
+    {
+      name: "an awaited Effect.runPromiseExit of a local function",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { Effect } from "effect";
+import { updateTag } from "next/cache";
+const archiveJob = (id: string) => Effect.succeed(id);
+export async function archive(id: string) {
+  await Effect.runPromiseExit(archiveJob(id));
+  updateTag("jobs");
+}`,
+    },
+    {
+      name: "a public action that verifies its token",
+      filename: ACTIONS,
+      options: [{ trustAwaitedCalls: false }],
+      code: `
+"use server";
+import { revalidatePath } from "next/cache";
+
+export async function unsubscribe(token: string) {
+  const subscriber = await verifyUnsubscribeToken(token);
+  if (!subscriber) throw new Error("Invalid token");
+  await db.subscribers.update({ where: { id: subscriber.id }, data: { subscribed: false } });
+  revalidatePath("/preferences");
+}`,
+    },
+    {
       name: "an auth check before a direct invalidation",
       filename: ACTIONS,
       code: `
@@ -408,6 +449,34 @@ export async function deletePost(id: string) {
           line: 6,
         },
       ],
+    },
+    {
+      name: "an awaited Effect runner of a client call",
+      filename: ACTIONS,
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+import { serverRuntime } from "#source/lib/runtime.ts";
+export async function deletePost(id: string) {
+  await serverRuntime.runPromise(db.posts.delete({ where: { id } }));
+  updateTag("posts");
+}`,
+      errors: [{ messageId: "missingAuth", line: 7 }],
+    },
+    {
+      name: "an awaited Effect runner with trustAwaitedCalls off",
+      filename: ACTIONS,
+      options: [{ trustAwaitedCalls: false }],
+      code: `
+"use server";
+import { revalidatePath } from "next/cache";
+import { serverRuntime } from "#source/lib/runtime.ts";
+import { unsubscribeWithToken } from "#source/lib/unsubscribe.ts";
+export async function unsubscribe(token: string) {
+  const outcome = await serverRuntime.runPromise(unsubscribeWithToken(token));
+  if (outcome === "saved") revalidatePath("/preferences/[token]", "page");
+}`,
+      errors: [{ messageId: "missingAuth", line: 8 }],
     },
     {
       name: "an invalidation in a callback created before the auth check",
