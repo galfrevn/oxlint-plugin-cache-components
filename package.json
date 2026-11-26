@@ -54,6 +54,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.build.json",
     "check": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test",
     "next-sync": "node scripts/next-sync.mjs",
+    "smoke": "node scripts/smoke.mjs",
     "prepack": "pnpm run build"
   },
   "engines": {
