@@ -68,8 +68,17 @@ The plugin needs oxlint 1.95.0 or later and Node.js `^20.19.0 || >=22.12.0`. `ox
 | Preset | oxlint | ESLint | Severity |
 |---|---|---|---|
 | `recommended` | `cacheComponents.recommended` | `configs["flat/recommended"]` | `error` for rules that map to a Next.js error, `warn` for deprecations, no-ops, and the auth heuristic |
-| `strict` | `cacheComponents.strict` | `configs["flat/strict"]` | every rule as `error` |
+| `strict` | `cacheComponents.strict` | `configs["flat/strict"]` | the `recommended` rules as `error`, plus the serialization and `React.cache` heuristics as `warn` |
+| `migration` | `cacheComponents.migration` | `configs["flat/migration"]` | `no-legacy-segment-config` as `error`, for projects that enable `cacheComponents` |
 | `all` | `cacheComponents.all` | `configs["flat/all"]` | every rule as `error` |
+
+Combine `migration` with another preset while you move a project to Cache Components:
+
+```ts
+export default defineConfig({
+  extends: [cacheComponents.recommended, cacheComponents.migration],
+});
+```
 
 ### Shared settings
 
@@ -98,7 +107,7 @@ Options that several rules read can be set once. A rule option takes precedence 
 
 Each rule has a page in [`docs/rules`](docs/rules) with its examples, options, and limitations.
 
-| Rule | What it reports | `recommended` |
+| Rule | What it reports | Preset |
 |---|---|---|
 | [`no-request-api-in-cache`](docs/rules/no-request-api-in-cache.md) | `cookies()`, `headers()`, `connection()`, `searchParams`, `draftMode()` mutations, or Route Handler `request` reads inside a cache scope, including through helpers in the same file. | error |
 | [`no-cache-api-outside-cache`](docs/rules/no-cache-api-outside-cache.md) | `cacheTag()` or `cacheLife()` where no `"use cache"` scope exists: module scope, Server Actions, Route Handlers, Client Components, and `unstable_cache()` callbacks. | error |
@@ -108,9 +117,13 @@ Each rule has a page in [`docs/rules`](docs/rules) with its examples, options, a
 | [`no-promise-args-to-cache`](docs/rules/no-promise-args-to-cache.md) | `cookies()`, `headers()`, or a captured request promise passed to a cached function without `await`, which hangs the build for about 50 seconds. | error |
 | [`require-revalidate-tag-profile`](docs/rules/require-revalidate-tag-profile.md) | `revalidateTag(tag)` with one argument, which Next.js deprecates. | warn |
 | [`require-revalidate-path-type`](docs/rules/require-revalidate-path-type.md) | `revalidatePath()` with a dynamic route and no `type`, which does nothing. | warn |
-| [`require-auth-before-revalidate`](docs/rules/require-auth-before-revalidate.md) | Cache invalidation in a Server Action or Route Handler with no auth check, secret check, or rate limit before it. | warn |
+| [`require-auth-before-revalidate`](docs/rules/require-auth-before-revalidate.md) | Cache invalidation in a Server Action or Route Handler with no auth check, secret check, or rate limit on every path before it. | warn |
+| [`no-legacy-segment-config`](docs/rules/no-legacy-segment-config.md) | `dynamic`, `revalidate`, `fetchCache`, `runtime`, or `experimental_ppr` exported from a segment, which fails the build with Cache Components. | `migration` |
+| [`no-introspect-passthrough`](docs/rules/no-introspect-passthrough.md) | Reading `children` or calling a function received as an argument inside a cached function. | `strict` (warn) |
+| [`serializable-cache-args`](docs/rules/serializable-cache-args.md) | Class instances, symbols, `URL`, `WeakMap`, `WeakSet`, or the request passed to a cached function. | `strict` (warn) |
+| [`no-react-cache-across-boundary`](docs/rules/no-react-cache-across-boundary.md) | A `React.cache` function called both outside and inside a cached function, where its result is not shared. | `strict` (warn) |
 
-Eight rules map to an error or warning that Next.js already produces. `require-auth-before-revalidate` is a heuristic based on the Next.js data security guide, so it ships as `warn`.
+The rules in `recommended` and `migration` map to an error or warning that Next.js already produces, except `require-auth-before-revalidate`, a heuristic based on the Next.js data security guide that ships as `warn`. The `strict` heuristics read the code without types, so they ship as warnings.
 
 ### Analysis boundaries
 
