@@ -26,7 +26,7 @@ Claude Code runs a `PostToolUse` command hook after `Edit`, `Write`, and `MultiE
 }
 ```
 
-`.claude/hooks/cache-components.sh`, the warn variant. It passes the findings to the agent as additional context:
+`.claude/hooks/cache-components.sh`, the warn variant. It passes every error and warning to the agent as additional context:
 
 ```bash
 #!/usr/bin/env bash
@@ -36,24 +36,31 @@ case "$file" in
   *) exit 0 ;;
 esac
 
-if ! findings=$(npx oxlint --format agent "$file" 2>&1); then
+cd "$CLAUDE_PROJECT_DIR" || exit 0
+findings=$(npx --no-install oxlint --format agent "$file" 2>/dev/null)
+if [ -n "$findings" ]; then
   jq -n --arg ctx "$findings" \
     '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $ctx}}'
 fi
 exit 0
 ```
 
-For the block variant, replace the `jq -n` call with:
+The block variant stops the agent only on errors. Replace every line after the `cd` line with:
 
 ```bash
+if ! findings=$(npx --no-install oxlint --format agent "$file" 2>/dev/null); then
   jq -n --arg reason "$findings" '{decision: "block", reason: $reason}'
+fi
+exit 0
 ```
+
+The script reads only the linter's standard output, so Node.js warnings don't reach the agent. `--no-install` keeps `npx` from downloading oxlint when the project doesn't have it.
 
 Make the script executable with `chmod +x .claude/hooks/cache-components.sh`. The script needs `jq`.
 
 ## Other harnesses
 
-Codex, OpenCode, Gemini CLI, and other harnesses with post-edit hooks follow the same pattern: run `npx oxlint --format agent <file>` on the changed files and return the output to the agent.
+Codex, OpenCode, Gemini CLI, and other harnesses with post-edit hooks follow the same pattern: run `npx --no-install oxlint --format agent <file>` on the changed files and return the output to the agent.
 
 If the harness has no hooks, add this instruction to `AGENTS.md`:
 
