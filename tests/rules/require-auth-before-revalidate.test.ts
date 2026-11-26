@@ -244,6 +244,38 @@ export const updateProject = permissionActionClient({ project: ["update"] })
     updateTag(\`project-\${parsedInput.id}\`);
   });`,
     },
+    {
+      name: "auth in both branches of an if statement",
+      filename: ACTIONS,
+      options: [{ trustAwaitedCalls: false }],
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+export async function save(admin: boolean) {
+  if (admin) {
+    await requireAuth();
+  } else {
+    await requireUser();
+  }
+  updateTag("posts");
+}`,
+    },
+    {
+      name: "auth in a try block whose catch clause returns",
+      filename: ACTIONS,
+      options: [{ trustAwaitedCalls: false }],
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+export async function save() {
+  try {
+    await requireUser();
+  } catch {
+    return { error: "Unauthorized" };
+  }
+  updateTag("posts");
+}`,
+    },
   ],
   invalid: [
     {
@@ -423,6 +455,38 @@ import { deleteWorkspace } from "@/data/workspaces";
 export async function deleteWorkspaceAction(slug: string) {
   await deleteWorkspace(slug);
   revalidatePath("/workspaces");
+}`,
+      errors: [{ messageId: "missingAuth" }],
+    },
+    {
+      name: "auth inside a loop that may not run",
+      filename: ACTIONS,
+      options: [{ trustAwaitedCalls: false }],
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+export async function save(ids: string[]) {
+  for (const id of ids) {
+    await requireUser();
+  }
+  updateTag("posts");
+}`,
+      errors: [{ messageId: "missingAuth" }],
+    },
+    {
+      name: "auth in a try block whose catch clause continues",
+      filename: ACTIONS,
+      options: [{ trustAwaitedCalls: false }],
+      code: `
+"use server";
+import { updateTag } from "next/cache";
+export async function save() {
+  try {
+    await requireUser();
+  } catch {
+    console.error("auth failed");
+  }
+  updateTag("posts");
 }`,
       errors: [{ messageId: "missingAuth" }],
     },
