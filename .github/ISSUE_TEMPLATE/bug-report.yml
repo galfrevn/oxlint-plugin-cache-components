@@ -1,0 +1,54 @@
+name: Bug report
+description: A rule reports correct code, misses an error, crashes, or suggests a wrong fix.
+labels: [bug]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of problem
+      options:
+        - False positive (correct code is reported)
+        - False negative (an error is not reported)
+        - Crash or error while linting
+        - Wrong suggestion or message
+        - Configuration or preset problem
+    validations:
+      required: true
+  - type: input
+    id: rule
+    attributes:
+      label: Rule
+      placeholder: cache-components/no-request-api-in-cache
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Smallest code that reproduces it
+      description: Include the file path, because some rules depend on it (for example `app/api/route.ts`).
+      render: tsx
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened
+      description: Paste the rule message. For a false positive, explain why Next.js accepts the code.
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: oxlint-plugin-cache-components 0.1.0, oxlint 1.95.0, next 16.4.6, Node 24
+    validations:
+      required: true
+  - type: dropdown
+    id: runner
+    attributes:
+      label: Runner
+      options:
+        - oxlint
+        - ESLint
+    validations:
+      required: true

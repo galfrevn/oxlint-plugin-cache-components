@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a vulnerability
+    url: https://github.com/galfrevn/oxlint-plugin-cache-components/security/advisories/new
+    about: Report security issues privately. Do not open a public issue.
+  - name: Next.js documentation
+    url: https://nextjs.org/docs/app/api-reference/directives/use-cache
+    about: Questions about Cache Components behavior belong to the Next.js docs and discussions.

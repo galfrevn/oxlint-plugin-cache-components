@@ -1,0 +1,36 @@
+name: Rule proposal
+description: Propose a rule for Next.js behavior that already exists.
+labels: [rule-proposal]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Every rule must map to Next.js behavior that already exists: an error, a warning, or a call that silently does nothing. See ADR-006 in `documentation/decisions.md`.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Next.js behavior
+      description: Quote the error or warning, and link its source in `vercel/next.js`, for example `packages/next/src/server/use-cache/use-cache-messages.ts`.
+    validations:
+      required: true
+  - type: textarea
+    id: invalid
+    attributes:
+      label: Invalid example
+      render: tsx
+    validations:
+      required: true
+  - type: textarea
+    id: valid
+    attributes:
+      label: Valid example
+      render: tsx
+    validations:
+      required: true
+  - type: textarea
+    id: false-positives
+    attributes:
+      label: False-positive risk
+      description: Which correct code could the rule report by mistake, and how would the rule avoid it within one file?
+    validations:
+      required: true
