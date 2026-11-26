@@ -1,0 +1,14 @@
+{
+  "jsPlugins": ["oxlint-plugin-cache-components"],
+  "rules": {
+    "cache-components/no-request-api-in-cache": "error",
+    "cache-components/no-cache-api-outside-cache": "error",
+    "cache-components/require-cachelife-when-nested": "error",
+    "cache-components/no-invalid-cache-nesting": "error",
+    "cache-components/valid-invalidation-context": "error",
+    "cache-components/no-promise-args-to-cache": "error",
+    "cache-components/require-revalidate-tag-profile": "warn",
+    "cache-components/require-revalidate-path-type": "warn",
+    "cache-components/require-auth-before-revalidate": "warn"
+  }
+}
