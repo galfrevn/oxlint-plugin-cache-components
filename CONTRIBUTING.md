@@ -68,7 +68,7 @@ Releases go through GitHub Actions, and only the maintainer can approve one.
 
 GitHub Actions never opens pull requests or pushes to `main`, so the repository does not need to let Actions create pull requests.
 
-The `publish` job authenticates with an `NPM_TOKEN` secret in the `npm` environment when it exists, and with npm trusted publishing otherwise. To use trusted publishing, add a trusted publisher in the package settings on npmjs.com with this repository, the workflow `release.yml`, and the environment `npm`, then delete the token with `gh secret delete NPM_TOKEN --env npm`.
+The `publish` job authenticates with npm trusted publishing when the package has a trusted publisher, and with an `NPM_TOKEN` secret in the `npm` environment otherwise. pnpm prefers trusted publishing when both are available. The trusted publisher in the package settings on npmjs.com needs this repository, the workflow `release.yml`, the environment `npm`, and `npm publish` among its allowed actions. A publisher that only allows `npm stage publish` makes the job fail with `E403 ... OIDC permission denied for this action`. Once trusted publishing works, delete the token with `gh secret delete NPM_TOKEN --env npm`.
 
 ## Pull requests
 
