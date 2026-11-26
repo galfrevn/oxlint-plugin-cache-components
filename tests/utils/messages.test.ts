@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import packageJson from "../../package.json" with { type: "json" };
 import {
   NEXT_REQUEST_IN_USE_CACHE_URL,
   requestApiUrl,
@@ -35,9 +36,9 @@ describe("URLs", () => {
     }
   });
 
-  it("links rule docs to the repository", () => {
+  it("links rule docs to the tag of the installed version", () => {
     expect(ruleDocsUrl("no-request-api-in-cache")).toBe(
-      "https://github.com/galfrevn/oxlint-plugin-cache-components/blob/main/docs/rules/no-request-api-in-cache.md",
+      `https://github.com/galfrevn/oxlint-plugin-cache-components/blob/v${packageJson.version}/docs/rules/no-request-api-in-cache.md`,
     );
   });
 });

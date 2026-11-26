@@ -1,3 +1,4 @@
+import packageJson from "../../package.json" with { type: "json" };
 import type { CacheKind } from "./directives.ts";
 
 export const CACHE_LIFE_OUTSIDE_USE_CACHE_URL =
@@ -51,5 +52,5 @@ export function requestApiUrl(kind: CacheKind): string {
 }
 
 export function ruleDocsUrl(rule: string): string {
-  return `${REPOSITORY_URL}/blob/main/docs/rules/${rule}.md`;
+  return `${REPOSITORY_URL}/blob/v${packageJson.version}/docs/rules/${rule}.md`;
 }
