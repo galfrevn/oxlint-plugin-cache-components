@@ -62,17 +62,12 @@ describe("classifyCacheLife", () => {
 
 const probe = createProbe((context) => {
   const results: string[] = [];
-  walk(
-    context.sourceCode.ast,
-    context.sourceCode.visitorKeys,
-    (node) => {
-      if (node.type === "CallExpression") {
-        const parsed = parseCacheLifeCall(node);
-        results.push(`${JSON.stringify(parsed)}=${classifyCacheLife(parsed, ["live"])}`);
-      }
-    },
-    () => {},
-  );
+  walk(context.sourceCode.ast, context.sourceCode.visitorKeys, (node) => {
+    if (node.type === "CallExpression") {
+      const parsed = parseCacheLifeCall(node);
+      results.push(`${JSON.stringify(parsed)}=${classifyCacheLife(parsed, ["live"])}`);
+    }
+  });
   return results;
 });
 

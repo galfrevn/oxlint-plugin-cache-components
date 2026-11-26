@@ -14,20 +14,15 @@ function describeMarkedCalls(
   render: (analysis: FileAnalysis, node: Parameters<FileAnalysis["unitAt"]>[0]) => string,
 ): string[] {
   const results: string[] = [];
-  walk(
-    analysis.sourceCode.ast,
-    analysis.sourceCode.visitorKeys,
-    (node) => {
-      if (
-        node.type === "CallExpression" &&
-        node.callee.type === "Identifier" &&
-        node.callee.name.startsWith("mark")
-      ) {
-        results.push(`${node.callee.name}=${render(analysis, node)}`);
-      }
-    },
-    () => {},
-  );
+  walk(analysis.sourceCode.ast, analysis.sourceCode.visitorKeys, (node) => {
+    if (
+      node.type === "CallExpression" &&
+      node.callee.type === "Identifier" &&
+      node.callee.name.startsWith("mark")
+    ) {
+      results.push(`${node.callee.name}=${render(analysis, node)}`);
+    }
+  });
   return results;
 }
 

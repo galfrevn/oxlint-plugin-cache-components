@@ -59,16 +59,11 @@ function describeDirective(directive: Directive | null): string {
 
 const probe = createProbe((context) => {
   const results = [`file=${describeDirective(getFileDirective(context.sourceCode.ast))}`];
-  walk(
-    context.sourceCode.ast,
-    context.sourceCode.visitorKeys,
-    (node) => {
-      if (isFunctionNode(node)) {
-        results.push(describeDirective(getFunctionDirective(node)));
-      }
-    },
-    () => {},
-  );
+  walk(context.sourceCode.ast, context.sourceCode.visitorKeys, (node) => {
+    if (isFunctionNode(node)) {
+      results.push(describeDirective(getFunctionDirective(node)));
+    }
+  });
   return results;
 });
 

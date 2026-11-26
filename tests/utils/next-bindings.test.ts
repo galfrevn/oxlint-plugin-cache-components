@@ -22,21 +22,14 @@ function describeCalls(requestApis: readonly string[]): (context: Context) => st
   return (context) => {
     const bindings = createNextBindings(context.sourceCode, parseRequestApis(requestApis));
     const results: string[] = [];
-    walk(
-      context.sourceCode.ast,
-      context.sourceCode.visitorKeys,
-      (node) => {
-        if (node.type === "CallExpression") {
-          const callee = context.sourceCode.getText(node.callee);
-          const resolved =
-            bindings.resolve(node.callee) ??
-            bindings.resolveRequestApi(node.callee)?.name ??
-            "none";
-          results.push(`${callee}=${resolved}`);
-        }
-      },
-      () => {},
-    );
+    walk(context.sourceCode.ast, context.sourceCode.visitorKeys, (node) => {
+      if (node.type === "CallExpression") {
+        const callee = context.sourceCode.getText(node.callee);
+        const resolved =
+          bindings.resolve(node.callee) ?? bindings.resolveRequestApi(node.callee)?.name ?? "none";
+        results.push(`${callee}=${resolved}`);
+      }
+    });
     return results;
   };
 }

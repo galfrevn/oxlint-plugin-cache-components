@@ -77,11 +77,13 @@ export function childNodes(node: Node, keys: VisitorKeys): Node[] {
   return children;
 }
 
+export const SKIP: unique symbol = Symbol("skip");
+
 export function walk(
   root: Node,
   keys: VisitorKeys,
-  enter: (node: Node) => void,
-  leave: (node: Node) => void,
+  enter: (node: Node) => typeof SKIP | void,
+  leave: (node: Node) => void = () => {},
 ): void {
   const stack: { node: Node; leaving: boolean }[] = [{ node: root, leaving: false }];
   for (let entry = stack.pop(); entry; entry = stack.pop()) {
@@ -89,7 +91,9 @@ export function walk(
       leave(entry.node);
       continue;
     }
-    enter(entry.node);
+    if (enter(entry.node) === SKIP) {
+      continue;
+    }
     stack.push({ node: entry.node, leaving: true });
     const children = childNodes(entry.node, keys);
     for (let index = children.length - 1; index >= 0; index -= 1) {
