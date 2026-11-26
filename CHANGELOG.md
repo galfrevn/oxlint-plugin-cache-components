@@ -5,6 +5,7 @@
 ### Patch Changes
 
 - ecfff22: Fix `require-auth-before-revalidate` taking exponential time in the number of branches, such as `?.`, `??`, `&&`, or `if`, between the auth check and the invalidation. A large Server Action could stall oxlint for minutes. The check now takes linear time in the size of the function.
+- 63f2614: Stop the `all` preset from setting `cacheComponents: true` for `no-legacy-segment-config`, which reported valid segment config exports in projects without Cache Components. Extend `migration` as well to check them.
 - 1dcaf4f: Make `no-legacy-segment-config` skip files outside route segments before oxlint sends their AST to JavaScript, instead of analyzing every file that mentions `runtime`, `dynamic`, or `revalidate`.
 - c58703c: Stop `no-react-cache-across-boundary` from reporting a `React.cache` call in a component or helper that runs only inside cached functions, such as a component rendered only from a `"use cache"` function.
 - 4ba0b13: Recognize `const` aliases of Next.js APIs and of `requestApis` entries, such as `const read = cookies`, in every rule.
